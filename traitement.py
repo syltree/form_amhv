@@ -2,6 +2,8 @@ from datetime import datetime
 #from pylatex import Document, Section, Subsection, Command
 #from pylatex.utils import italic, NoEscape
 # Installer le compilateuir latex: sudo apt-get install texlive-pictures texlive-science texlive-latex-extra latexmk
+
+# fonctionne avec le resultat telecharger en csv avec le séparateur ";"  et en mode separe
 from fpdf import FPDF
 
 fichierSource = open("Atraiter.csv", "r")
@@ -98,7 +100,7 @@ def extrairePrix(data,age,boolparcours):
     textelog="function prix -data: "+data+" -prix: "+str(result)
     if result==0:
       print ("ERREUR, prix 0 alors que valeur définie")
-      textelog=textelog+" ------ ERROR PIRX NUL ------ "
+      textelog=textelog+" ------ ERROR PRIX NUL ------ "
     print("data: "+data+" prix:"+str(result))
     if indicePrix==0:
       textelog=textelog+" dans parcours"
@@ -110,6 +112,19 @@ def extrairePrix(data,age,boolparcours):
     # Fin Si
   return result
 # Fin recherche prix
+
+def rechercheRrixInstrument(instrument):
+  match instrument:
+    case "Les instruments amplifiés : guitare électrique" | "Les cordes : guitare classique":
+      return 60
+    case "Les instruments traditionnels : harpe celtique":
+      return 180
+    case _:
+      return 160
+    
+# Fin rechercheRrixInstrument
+
+
 
 def cre_fichier_inscription():
   
@@ -213,8 +228,9 @@ ecrire_log("\n\n\n ***********************   "+ datetime.today().strftime("%Y-%m
 # on récupère la 1ere ligne de donnée du fichier, les 3 eres sont les entetes
 line=fichierSource.readline()
 line=fichierSource.readline()
-line=fichierSource.readline()
 
+line=fichierSource.readline()
+liste_entete=line.split("\";\"") # contient les entetes
 
 # On traite la ligne
 line=fichierSource.readline()
@@ -225,11 +241,11 @@ while line:  # On parcours l'ensemble des fiches
    age=["","","",""]
    reinscription=[False,False,False,False]
    NiveauScolaire=["","","",""]
-   ParcoursCol=["","","",""]
-   ParcoursComplet=["","","",""]
-   Acc=["","","",""]
+   ParcoursCol=[["","","",""],[0,0,0,0]]   # Nom , prix
+   ParcoursComplet=[["","","",""],[0,0,0,0]]   # Nom , prix
+   Acc=[["","","",""],[0,0,0,0]]   # Nom , prix
    CoursChant=[False,False,False,False]
-   Prix=[0,0,0,0]
+   PrixTotal=[0,0,0,0]
    instrument1=["","","",""]
    location1=[False,False,False,False]
    instrument2=["","","",""]
@@ -237,12 +253,13 @@ while line:  # On parcours l'ensemble des fiches
    taille=["","","",""]
    remarqueDispo=["","","",""]
    nomProf=["","","",""]
-   orchestre=["","","",""]
-   coursRock=["","","",""]
+   orchestre=[["","","",""],[0,0,0,0]]   # Nom , prix
+   coursRock=[["","","",""],[0,0,0,0]]   # Nom , prix
    nomGroupe=["","","",""]
    jourpossible=["","","",""]
    jourimpossible=["","","",""]
    jourpeut_etre=["","","",""]
+   prixInstrument=[[0,0,0,0],[0,0,0,0]] # location instrument 1, instrument 2 
    inf21a=False
    parcours=False
      
@@ -264,131 +281,151 @@ while line:  # On parcours l'ensemble des fiches
      jour=""
      match count:
       case 6: 
+         if liste_entete[count-1]!="Brouillon":
+          print("Erreur entete non correcte")
+          ecrire_log("Erreur entete non correcte: "+liste_entete[count-1]+" numéro colonne: "+str(count))
          match data:
              case "1":
                etat="brouillon"
              case "0":
                etat="valide"
       # fin match data
-      case 10:
-          nb_inscrit=data
-      case 11 | 46 | 81 | 116:
-          eleve=eleve+1 # On a un nouvel eleve
-          parcours=False  # On initialise le parcours a false, le met a true si une formation dans le parcours est choisie plus tard
-          if data=="":
+      case 10:  # Nb inscrit
+        if liste_entete[count-1]!="Nombre d'élève à inscrire":
+          print("Erreur entete non correcte")
+          ecrire_log("Erreur entete non correcte: "+liste_entete[count-1]+" numéro colonne: "+str(count))
+        nb_inscrit=data
+      case 11 | 46 | 81 | 116: # nom
+        if liste_entete[count-1]!="Nom" and liste_entete[count-1]!="Nom  (si différent de l'élève 1)":
+          print("Erreur entete non correcte")
+          ecrire_log("Erreur entete non correcte: "+liste_entete[count-1]+" numéro colonne: "+str(count))
+        eleve=eleve+1 # On a un nouvel eleve
+        parcours=False  # On initialise le parcours a false, le met a true si une formation dans le parcours est choisie plus tard
+        if data=="":  # Le nom est vide, on prend donc le nom de l'elever precedent (le 1er ne peut pas etre vide)
             nom[eleve]=nom[eleve-1]
-          else:  
+        else:  
             nom[eleve]=data
-      case 12 | 47 | 82 | 117:
-          prenom[eleve]=data
-      case 13 | 48 | 83 | 118:
-          age[eleve]=data
-          if data=="> 21 ans":
+      case 12 | 47 | 82 | 117: # prenom
+        if liste_entete[count-1]!="Prénom":
+          print("Erreur entete non correcte")
+          ecrire_log("Erreur entete non correcte: "+liste_entete[count-1]+" numéro colonne: "+str(count))
+        prenom[eleve]=data
+      case 13 | 48 | 83 | 118: # age
+        if liste_entete[count-1]!="Age au 01/09/2024":
+          print("Erreur entete non correcte")
+          ecrire_log("Erreur entete non correcte: "+liste_entete[count-1]+" numéro colonne: "+str(count))
+        age[eleve]=data
+        if data=="> 21 ans":
             inf21a=False
-          else:
+        else:
             inf21a=True
-          print("eleve :"+str(eleve)+" nb inscrit:"+nb_inscrit+" age:"+age[eleve]+" source:"+data)
-      case 14 | 49 | 84 | 119:
+        print("eleve :"+str(eleve)+" nb inscrit:"+nb_inscrit+" age:"+age[eleve]+" source:"+data)
+      case 14 | 49 | 84 | 119: # reinscription
           if data=="nouvel inscrit":
               reinscription[eleve]=False
           else:
               reinscription[eleve]=True
-      case 15 | 50 | 85 | 120:
+      case 15 | 50 | 85 | 120: # Niveau scolaire
           NiveauScolaire[eleve]=data
-      case 16 | 51 | 86 | 121:
+      case 16 | 51 | 86 | 121: # Parcours decouverte de la musique en cours collectif
           if data[:6]=="Pas de":
             data=""   
           if len(data)>0:
             parcours=True
-            ParcoursCol[eleve]=extraireNomParcours(data)
-            Prix[eleve]=Prix[eleve]+extrairePrix(ParcoursCol[eleve],inf21a,parcours)
-      case 17 | 52 | 87 | 122:
+            ParcoursCol[0][eleve]=extraireNomParcours(data)
+            ParcoursCol[1][eleve]=extrairePrix(ParcoursCol[0][eleve],inf21a,parcours)
+            PrixTotal[eleve]=PrixTotal[eleve]+ParcoursCol[1][eleve]
+      case 17 | 52 | 87 | 122: # Parcours complet - instrument ou champs + FM
           if data[:6]=="Pas de":
             data=""   
           if len(data)>0:
             parcours=True
-            ParcoursComplet[eleve]=extraireNomParcours(data)
-            Prix[eleve]=Prix[eleve]+extrairePrix("PARCOURS: "+ParcoursComplet[eleve],inf21a,parcours)  # On ajoute PARCOURS pour différentier la pratique amateur 
-      case 19 | 54 | 89 | 124:
+            ParcoursComplet[0][eleve]=extraireNomParcours(data)
+            ParcoursComplet[1][eleve]=extrairePrix("PARCOURS: "+ParcoursComplet[0][eleve],inf21a,parcours)  # On ajoute PARCOURS pour différentier la pratique amateur 
+            PrixTotal[eleve]=PrixTotal[eleve]+ParcoursComplet[1][eleve]
+      case 19 | 54 | 89 | 124: # Instrument ou chant 
           if data=="X":
             nomcoursAcc="COURS INDIVIDUEL 25mn"
-      case 20 | 55 | 90 | 125:
-          if data=="X":
+      case 20 | 55 | 90 | 125: # Instrument ou chant 
+          if data=="X": 
             nomcoursAcc="COURS INDIVIDUEL 30mn"
-      case 21 | 56 | 91 | 126:
-          if data=="X":
+      case 21 | 56 | 91 | 126: # Instrument ou chant 
+          if data=="X": # 
             nomcoursAcc="MUSIQUE ELECTRONIQUE"
-      case 22 | 57 | 92 | 127:         
-
-          if data=="Oui":
+      case 22 | 57 | 92 | 127:  # Cours de chant 
+         if data=="Oui":
             CoursChant[eleve]=True
-      case 23 | 58 | 93 | 128:
+      case 23 | 58 | 93 | 128: # Nom Instrument 1
         instrument1[eleve]=data
-      case 24 | 59 | 94 | 129:
+      case 24 | 59 | 94 | 129: # Location Instrument 1
         if data=="Oui":
           location1[eleve]=True
+          prixInstrument[1][eleve]=rechercheRrixInstrument(instrument1[eleve])
+          PrixTotal[eleve]=PrixTotal[eleve]+prixInstrument[1][eleve]
           print ("location1 Oui pour eleve:"+str(eleve)+nom[eleve])
-      case 25 | 60 | 95 | 130:
+      case 25 | 60 | 95 | 130: # Nom Instrument 2
         instrument2[eleve]=data
-      case 26 | 61 | 96 | 131:
+      case 26 | 61 | 96 | 131: # Location Instrument 2
         if data=="Oui":
           location2[eleve]=True
-      case 27 | 62 | 97 | 132:
+          prixInstrument[2][eleve]=rechercheRrixInstrument(instrument2[eleve])
+          PrixTotal[eleve]=PrixTotal[eleve]+prixInstrument[2][eleve]
+      case 27 | 62 | 97 | 132: # Taille eleve
         taille[eleve]=data
-      case 28 | 63 | 98 | 133:
+      case 28 | 63 | 98 | 133: # Jour de preference
         if len(data)>0:
           jour="lundi"
-      case 29 | 64 | 99 | 134:
+      case 29 | 64 | 99 | 134: # Jour de preference
         if len(data)>0:
           jour="mardi"
-      case 30 | 65 | 100 | 135:
+      case 30 | 65 | 100 | 135: # Jour de preference
         if len(data)>0:
           jour="mercredi"
-      case 31 | 66 | 101 | 136:
+      case 31 | 66 | 101 | 136: # Jour de preference
         if len(data)>0:
           jour="jeudi"
-      case 32 | 67 | 102 | 137:
+      case 32 | 67 | 102 | 137: # Jour de preference
         if len(data)>0:
           jour="vendredi"
-      case 33 | 68 | 103 | 138:
+      case 33 | 68 | 103 | 138: # Jour de preference
         if len(data)>0:
           jour="samedi"
-      case 34 | 69 | 104 | 139:
+      case 34 | 69 | 104 | 139: # Remarque sur dispo
         remarqueDispo[eleve]=data
-      case 35 | 70 | 105 | 140:
+      case 35 | 70 | 105 | 140: # Nom prof
         nomProf[eleve]=data
-      case 37 | 72 | 107 | 142:
+      case 37 | 72 | 107 | 142: # Orchestre et chorale
         if data=="X":
             nomcoursOrc="ORCHESTRE JUNIOR CORDES ET VENTS"
-      case 38 | 73 | 108 | 143:
+      case 38 | 73 | 108 | 143: # Orchestre et chorale
         if data=="X":
             nomcoursOrc="CHORALE ENFANTS A L'ECOLE"
-      case 39 | 74 | 109 | 144:
+      case 39 | 74 | 109 | 144: # Orchestre et chorale
         if data=="X":
             nomcoursOrc="CHORALE ADULTE"
-      case 40 | 75 | 110 | 145:
+      case 40 | 75 | 110 | 145: # Orchestre et chorale
         if data=="X":
             nomcoursOrc="ORCHESTRE HARMONIE"
-      case 42 | 77 | 112 | 147:
+      case 42 | 77 | 112 | 147: # Groupe Rock
         if data=="X":
             nomcoursRock="GROUPE ROCK"
-      case 43 | 78 | 113 | 148:
+      case 43 | 78 | 113 | 148: # Groupe Rock
         if data=="X":
             nomcoursRock="ATELIER JAZZ"
-      case 44 | 79 | 114 | 149:
+      case 44 | 79 | 114 | 149: # Groupe Rock
         if data=="X":
             nomcoursRock="Accès à la pratique autonome"
-      case 45 | 80 | 115 | 150:
+      case 45 | 80 | 115 | 150: # Nom des groupes
             nomGroupe[eleve]=data
-      case 151:
+      case 151: # Nom et prenom contact
         contact1=data
-      case 152:
+      case 152: 
         tel1=data
       case 153:
         mail1=data
       case 154:
         ville1=data
-      case 155:
+      case 155: # ville si autre
         if data!="":
           ville1=data
       case 156:
@@ -399,83 +436,107 @@ while line:  # On parcours l'ensemble des fiches
         mail2=data
       case 159:
         ville2=data
-      case 160:
+      case 160: # ville si autre
         if data!="":
           ville2=data
-      case 161:
+      case 161: # Info complementaire
         if data=="X":
           facture=True
-      case 162:
+      case 162: # Info complementaire
         if data=="X":
           dispositifSortir=True
-      case 163:
+      case 163: # Info complementaire
         if data=="X":
           volontaire=True
-      case 164:
+      case 164: # Info complementaire
         if data=="X":
           autorisePhoto=True
-      case 165:
+      case 165: # Reglement
         typeReglement=data
-      case 173:
+      case 173: # Autorise sortie
         if data=="non":
           autoriseSortie=False
       case 174:
         commentaire=data[:len(data)-2] # Ne prend pas le dernier caratère qui est un ""]
 
      # fin match count
-     if len(nomcoursRock)>0:
-       Prix[eleve]=Prix[eleve]+extrairePrix(nomcoursRock,inf21a,parcours)
-       if len(coursRock[eleve])==0:
-         coursRock[eleve]=nomcoursRock
-       else:
-         coursRock[eleve]=coursRock[eleve]+" + "+nomcoursRock
+     if len(nomcoursRock)>0:  # L'eleve a choisi un cours Rock ou Atelier
+       # On défini le prix
+       coursRock[1][eleve]=coursRock[1][eleve]+extrairePrix(nomcoursRock,inf21a,parcours)
+       PrixTotal[eleve]=PrixTotal[eleve]+extrairePrix(nomcoursRock,inf21a,parcours)
+       if len(coursRock[0][eleve])==0: # Aucun cours n'a encore été choisi, c'est le 1er
+         coursRock[0][eleve]=nomcoursRock
+       else:  # un autre cours a deja ete choisi
+         coursRock[0][eleve]=coursRock[0][eleve]+" + "+nomcoursRock
        nomcoursRock=""
 
-     if len(nomcoursOrc)>0:
-       Prix[eleve]=Prix[eleve]+extrairePrix(nomcoursOrc,inf21a,parcours)
-       if len(orchestre[eleve])==0:
-         orchestre[eleve]=nomcoursOrc
-       else:
-         orchestre[eleve]=orchestre[eleve]+" + "+nomcoursOrc
+     if len(nomcoursOrc)>0: # L'eleve a choisi un orchestre
+       orchestre[1][eleve]=orchestre[1][eleve]+extrairePrix(nomcoursOrc,inf21a,parcours)
+       PrixTotal[eleve]=PrixTotal[eleve]+extrairePrix(nomcoursOrc,inf21a,parcours)
+       if len(orchestre[0][eleve])==0: # Aucun cours n'a encore été choisi, c'est le 1er
+         orchestre[0][eleve]=nomcoursOrc
+       else: # un autre cours a deja ete choisi
+         orchestre[0][eleve]=orchestre[0][eleve]+" + "+nomcoursOrc
        nomcoursOrc=""
 
-     if len(nomcoursAcc)>0:
-       Prix[eleve]=Prix[eleve]+extrairePrix(nomcoursAcc,inf21a,parcours)
-       if len(Acc[eleve])==0:
-         Acc[eleve]=nomcoursAcc
-       else:
-         Acc[eleve]=Acc[eleve]+" + "+nomcoursAcc
+     if len(nomcoursAcc)>0: # l'eleve a choisi une pratique amateur
+       Acc[1][eleve]=Acc[1][eleve]+extrairePrix(nomcoursAcc,inf21a,parcours)
+       PrixTotal[eleve]=PrixTotal[eleve]+extrairePrix(nomcoursAcc,inf21a,parcours)
+       if len(Acc[0][eleve])==0:  # Aucun cours n'a encore été choisi, c'est le 1er
+         Acc[0][eleve]=nomcoursAcc
+       else: # un autre cours a deja ete choisi
+         Acc[0][eleve]=Acc[0][eleve]+" + "+nomcoursAcc
        nomcoursAcc=""
 
      if len(jour)>0:
       if data=="jour possible":
-        jourpossible[eleve]=jour
+        if len(jourpossible[eleve])==0:  # Aucun jour encore défini
+          jourpossible[eleve]=jour
+        else:
+          jourpossible[eleve]=jourpossible[eleve]+" + "+jour
       if data=="jour impossible":
-        jourimpossible[eleve]=jour
+        if len(jourimpossible[eleve])==0:  # Aucun jour encore défini
+          jourimpossible[eleve]=jour
+        else:
+          jourimpossible[eleve]=jourimpossible[eleve]+" + " +jour
       if data=="peut-être":
-        jourpeut_etre[eleve]=jour
-      jour=""
+        if len(jourpeut_etre[eleve])==0:  # Aucun jour encore défini
+          jourpeut_etre[eleve]=jour
+        else:
+          jourpeut_etre[eleve]=  jourpeut_etre[eleve]+" + "+jour
+     jour=""
+          
+    # fin for, colonne suivante
+     
+   if count>10: 
+    PrixFamille=30 # prix de l'adhesion
 
-             
-    # fin for, ligne suivante
-   if count>10:
-       for indice in range (int(nb_inscrit)):
-         ecrire_log("eleve: "+str(indice)+" nb colonne:"+ str(count)+" prix:"+ str(Prix[indice])+" Etat:"+etat+" nb inscrit:"+str(nb_inscrit)+" nom:"+nom[indice]+
+    for indice in range (int(nb_inscrit)):
+      # Calcul du prix famille
+      PrixFamille=PrixFamille+PrixTotal[indice]
+
+      ecrire_log("eleve: "+str(indice)+" nb colonne:"+ str(count)+" prix:"+ str(PrixTotal[indice])+" Etat:"+etat+" nb inscrit:"+str(nb_inscrit)+" nom:"+nom[indice]+
          " prenom:"+prenom[indice]+" age:"+age[indice]+" reinscription:"+str(reinscription[indice])+
-         " NiveauScolaire:"+NiveauScolaire[indice]+" ParcoursCol:"+ParcoursCol[indice]+
-         " parcours:"+ParcoursComplet[indice]+" accompagnement:"+Acc[indice]+" chant:"+ str(CoursChant[indice])+
+         " NiveauScolaire:"+NiveauScolaire[indice]+" ParcoursCol:"+ParcoursCol[0][indice]+
+         " parcours:"+ParcoursComplet[0][indice]+" accompagnement:"+Acc[0][indice]+" chant:"+ str(CoursChant[indice])+
          " instrument1:"+instrument1[indice]+" location1:"+str(location1[indice])+" instrument2:"+instrument2[indice]+
          " location2:"+str(location2[indice])+" taille:"+taille[indice]+" preference:"+jourpossible[indice]+
          " impossible:"+jourimpossible[indice]+" peut-être:"+jourpeut_etre[indice]+" remarquedispo:"+remarqueDispo[indice]+
-         " nom prof:"+nomProf[indice]+" orchestre:"+orchestre[indice]+
-         " groupe rock:"+coursRock[indice]+" nom groupe:"+nomGroupe[indice])
+         " nom prof:"+nomProf[indice]+" orchestre:"+orchestre[0][indice]+
+         " groupe rock:"+coursRock[0][indice]+" nom groupe:"+nomGroupe[indice])
          # fin for indice
-       ecrire_log(" contact1:"+contact1+" tel1:"+tel1+" mail1:"+mail1+" ville1:"+ville1+
+      ecrire_log(" contact1:"+contact1+" tel1:"+tel1+" mail1:"+mail1+" ville1:"+ville1+
          " contact2:"+contact2+" tel2:"+tel2+" mail2:"+mail2+" ville2:"+ville2+" facture:"+str(facture)+" sortir:"+str(dispositifSortir)+" aide:"+str(volontaire)+
          " photo:"+str(autorisePhoto)+" prelevement:"+typeReglement+" autorise sortie:"+str(autoriseSortie)+" commentaire:"+commentaire)
-      # fin si count>10      
+    # fin for nb inscrit
+    # calcul reduction famille
+    if PrixFamille>=900:
+      if int(nb_inscrit)>1:
+        PrixFamille=PrixFamille-15*(int(nb_inscrit)-1)
+   # fin si count>10
+
    # On redige le fichier
-   cre_fichier_inscription()
+#   cre_fichier_inscription()
    line=fichierSource.readline()
 # fin while
 fichierSource.close()
