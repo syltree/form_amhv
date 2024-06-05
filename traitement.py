@@ -7,8 +7,6 @@ from datetime import datetime
 from fpdf import FPDF
 
 
-prixReduc=15  # réduction appliqué par adhérent suplémentaire au-delà de minReduc
-minReduc=900  # Prix à partir duquel une rdéuction par adhérent est appliquée
 prixDecJardin=100
 prixDecEveil=180
 prixDecOrc=180
@@ -29,9 +27,12 @@ prixGroupAut=50
 prixLoc=150
 prixLocGuit=60
 prixLocHaut=180
+prixExterieur=80
 IndiceAge=0	 # Indice pour le prix selon l'age
 IndiceParcours=0 # Indice pour le prix selon le parcours, 0 dans la parcours 1 sinon
-
+CstReducFamille=15 # prix de la reduction Famille a partir du 2eme adherent au de à de minReduc
+CstminReduc=900 # Prix minimum pour obtenir la reduc famille
+cotisationFamille=30
 
 def ecrire_log(data):
 	fichierLog.write(data+"\n")
@@ -44,9 +45,9 @@ def extraireNomParcours(data):
   result=""
   if len(data)>0:
     result=data[8:]
-    print("result0:"+result)
+    # print("result0:"+result)
     result=result[:result.find("strong")-2]
-    print("result1:"+result)
+    # print("result1:"+result)
   return result
 
 def extrairePrix(data,age,boolparcours):
@@ -100,7 +101,7 @@ def extrairePrix(data,age,boolparcours):
     if result==0:
       print ("ERREUR, prix 0 alors que valeur définie")
       textelog=textelog+" ------ ERROR PRIX NUL ------ "
-    print("data: "+data+" prix:"+str(result))
+    # print("data: "+data+" prix:"+str(result))
     if indicePrix==0:
       textelog=textelog+" dans parcours"
     if age==0:
@@ -264,10 +265,10 @@ if __name__ == '__main__':
     jourpeut_etre=["","","",""]
     prixInstrument=[[0,0,0,0],[0,0,0,0]] # location instrument 1, instrument 2 
     contact=[{'nom':"", 'tel':"",'mail':"",'ville':""},{'nom':"", 'tel':"",'mail':"",'ville':""}]
-    inf21a=False
-    parcours=False
-    cotisationFamille=30
+    typeReglement=""
     reductionFamille=0
+    nf21a=False
+    parcours=False
      
     ecrire_log(line)
     liste_data=line.split("\";\"")
@@ -325,7 +326,7 @@ if __name__ == '__main__':
             inf21a=False
         else:
             inf21a=True
-        print("eleve :"+str(eleve)+" nb inscrit:"+nb_inscrit+" age:"+age[eleve]+" source:"+data)
+        # print("eleve :"+str(eleve)+" nb inscrit:"+nb_inscrit+" age:"+age[eleve]+" source:"+data)
       case 14 | 49 | 84 | 119: # reinscription
           if data=="nouvel inscrit":
               reinscription[eleve]=False
@@ -368,7 +369,7 @@ if __name__ == '__main__':
           location1[eleve]=True
           prixInstrument[1][eleve]=rechercheRrixInstrument(instrument1[eleve])
           PrixTotal[eleve]=PrixTotal[eleve]+prixInstrument[1][eleve]
-          print ("location1 Oui pour eleve:"+str(eleve)+nom[eleve])
+          # print ("location1 Oui pour eleve:"+str(eleve)+nom[eleve])
       case 25 | 60 | 95 | 130: # Nom Instrument 2
         instrument2[eleve]=data
       case 26 | 61 | 96 | 131: # Location Instrument 2
@@ -431,6 +432,8 @@ if __name__ == '__main__':
         contact[0]['mail']=data
       case 154:
         contact[0]['ville']=data
+        if data!="Autre":
+          prixExterieur=0
       case 155: # ville si autre
         if data!="":
           contact[0]['ville']=data
@@ -442,6 +445,8 @@ if __name__ == '__main__':
         contact[1]['mail']=data
       case 159:
         contact[1]['ville']=data
+        if data!="Autre":
+          prixExterieur=0
       case 160: # ville si autre
         if data!="":
           contact[1]['ville']=data
@@ -457,19 +462,34 @@ if __name__ == '__main__':
       case 164: # Info complementaire
         if data=="X":
           autorisePhoto=True
-      case 165: # Reglement
-        typeReglement=data
-      case 173: # Autorise sortie
+      case 165 : # Reglement
+        if data=="X":
+          typeReglement="Règlement de l'intégralité"
+      case 166 : # Reglement
+        if data=="X":
+          typeReglement=typeReglement+ " + "+"Règlement par chèque en 3 fois"
+      case 167 : # Reglement
+        if data=="X":
+          typeReglement=typeReglement+ " + "+"Par prélèvement en 5 fois (vers le 8 des mois d'octobre 2024, novembre 2024, décembre 2024, février 2025 et mars 2025) -  - le SEPA et le RIB sont alors nécessaire"
+      case 168: # Reglement
+        if data=="X":
+          typeReglement=typeReglement+ " + "+"Par prélèvement en 1 fois  - le SEPA et le RIB sont alors nécessaire"
+      case 169: # Reglement
+        if data=="X":
+          typeReglement=typeReglement+ " + "+"Par chèques vacances - un chèque de caution est alors nécessaire"
+      case 177: # Autorise sortie
         if data=="non":
           autoriseSortie=False
-      case 174:
+      case 178:
         commentaire=data[:len(data)-2] # Ne prend pas le dernier caratère qui est un ""]
 
      # fin match count
+     
      if len(nomcoursRock)>0:  # L'eleve a choisi un cours Rock ou Atelier
        # On défini le prix
-       coursRock[1][eleve]=coursRock[1][eleve]+extrairePrix(nomcoursRock,inf21a,parcours)
-       PrixTotal[eleve]=PrixTotal[eleve]+extrairePrix(nomcoursRock,inf21a,parcours)
+       prixtemp=extrairePrix(nomcoursRock,inf21a,parcours)
+       coursRock[1][eleve]=coursRock[1][eleve]+prixtemp
+       PrixTotal[eleve]=PrixTotal[eleve]+prixtemp
        if len(coursRock[0][eleve])==0: # Aucun cours n'a encore été choisi, c'est le 1er
          coursRock[0][eleve]=nomcoursRock
        else:  # un autre cours a deja ete choisi
@@ -477,8 +497,9 @@ if __name__ == '__main__':
        nomcoursRock=""
 
      if len(nomcoursOrc)>0: # L'eleve a choisi un orchestre
-       orchestre[1][eleve]=orchestre[1][eleve]+extrairePrix(nomcoursOrc,inf21a,parcours)
-       PrixTotal[eleve]=PrixTotal[eleve]+extrairePrix(nomcoursOrc,inf21a,parcours)
+       prixtemp=extrairePrix(nomcoursOrc,inf21a,parcours)
+       orchestre[1][eleve]=orchestre[1][eleve]+prixtemp
+       PrixTotal[eleve]=PrixTotal[eleve]+prixtemp
        if len(orchestre[0][eleve])==0: # Aucun cours n'a encore été choisi, c'est le 1er
          orchestre[0][eleve]=nomcoursOrc
        else: # un autre cours a deja ete choisi
@@ -486,8 +507,9 @@ if __name__ == '__main__':
        nomcoursOrc=""
 
      if len(nomcoursAcc)>0: # l'eleve a choisi une pratique amateur
-       Acc[1][eleve]=Acc[1][eleve]+extrairePrix(nomcoursAcc,inf21a,parcours)
-       PrixTotal[eleve]=PrixTotal[eleve]+extrairePrix(nomcoursAcc,inf21a,parcours)
+       prixtemp=extrairePrix(nomcoursAcc,inf21a,parcours)
+       Acc[1][eleve]=Acc[1][eleve]+prixtemp
+       PrixTotal[eleve]=PrixTotal[eleve]+prixtemp
        if len(Acc[0][eleve])==0:  # Aucun cours n'a encore été choisi, c'est le 1er
          Acc[0][eleve]=nomcoursAcc
        else: # un autre cours a deja ete choisi
@@ -514,12 +536,16 @@ if __name__ == '__main__':
           
     # fin for, colonne suivante
      
-    if count>10: # On a atteind la colonne du nombre d'inscrit
+    if count>10: 
       PrixFamille=cotisationFamille # prix de l'adhesion
+
+      if typeReglement[:3]==" + ":  # On suprime le + devant
+                ypeReglement=typeReglement[3:]
+      
 
       for indice in range (int(nb_inscrit)):
         # Calcul du prix famille
-        PrixFamille=PrixFamille+PrixTotal[indice]
+        PrixFamille=PrixFamille+PrixTotal[indice]+prixExterieur  # prix exterieur est passe à 0 si pas exterieur
 
         ecrire_log("eleve: "+str(indice)+" nb colonne:"+ str(count)+" prix:"+ str(PrixTotal[indice])+" Etat:"+etat+" nb inscrit:"+str(nb_inscrit)+" nom:"+nom[indice]+
          " prenom:"+prenom[indice]+" age:"+age[indice]+" reinscription:"+str(reinscription[indice])+
@@ -536,10 +562,11 @@ if __name__ == '__main__':
          " photo:"+str(autorisePhoto)+" prelevement:"+typeReglement+" autorise sortie:"+str(autoriseSortie)+" commentaire:"+commentaire)
       # fin for nb inscrit
     # calcul reduction famille
-    if PrixFamille>=minReduc:
+    if PrixFamille>=CstminReduc:
+      reductionFamille=CstReducFamille*(int(nb_inscrit)-1)
       if int(nb_inscrit)>1:
-        reductionFamille=prixReduc*(int(nb_inscrit)-1)
         PrixFamille=PrixFamille-reductionFamille
+    ecrire_log(" Prix Famille:"+str(PrixFamille))
    # fin si count>10
 
    # On redige le fichier
