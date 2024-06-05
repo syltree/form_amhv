@@ -6,10 +6,9 @@ from datetime import datetime
 # fonctionne avec le resultat telecharger en csv avec le séparateur ";"  et en mode separe
 from fpdf import FPDF
 
-fichierSource = open("Atraiter.csv", "r")
-fichierDestination = open("Dest.txt", "w")
-fichierLog=open("Log.txt","w")
 
+prixReduc=15  # réduction appliqué par adhérent suplémentaire au-delà de minReduc
+minReduc=900  # Prix à partir duquel une rdéuction par adhérent est appliquée
 prixDecJardin=100
 prixDecEveil=180
 prixDecOrc=180
@@ -222,58 +221,65 @@ def cre_fichier_inscription():
 
 
 # Debut prog
+if __name__ == '__main__':
+  fichierSource = open("Atraiter.csv", "r",encoding='UTF-8')
+  fichierDestination = open("Dest.txt", "w")
+  fichierLog=open("Log.txt","w")
 
-ecrire_log("\n\n\n ***********************   "+ datetime.today().strftime("%Y-%m-%d %H:%M") +"   ************ \n\n\n")
+  ecrire_log("\n\n\n ***********************   "+ datetime.today().strftime("%Y-%m-%d %H:%M") +"   ************ \n\n\n")
 
-# on récupère la 1ere ligne de donnée du fichier, les 3 eres sont les entetes
-line=fichierSource.readline()
-line=fichierSource.readline()
+  # on récupère la 1ere ligne de donnée du fichier, les 3 eres sont les entetes
+  line=fichierSource.readline()
+  line=fichierSource.readline()
 
-line=fichierSource.readline()
-liste_entete=line.split("\";\"") # contient les entetes
+  line=fichierSource.readline()
+  liste_entete=line.split("\";\"") # contient les entetes
 
-# On traite la ligne
-line=fichierSource.readline()
-while line:  # On parcours l'ensemble des fiches
-   # declaration des tableaux, pour chaque eleve
-   nom=["","","",""]
-   prenom=["","","",""]
-   age=["","","",""]
-   reinscription=[False,False,False,False]
-   NiveauScolaire=["","","",""]
-   ParcoursCol=[["","","",""],[0,0,0,0]]   # Nom , prix
-   ParcoursComplet=[["","","",""],[0,0,0,0]]   # Nom , prix
-   Acc=[["","","",""],[0,0,0,0]]   # Nom , prix
-   CoursChant=[False,False,False,False]
-   PrixTotal=[0,0,0,0]
-   instrument1=["","","",""]
-   location1=[False,False,False,False]
-   instrument2=["","","",""]
-   location2=[False,False,False,False]
-   taille=["","","",""]
-   remarqueDispo=["","","",""]
-   nomProf=["","","",""]
-   orchestre=[["","","",""],[0,0,0,0]]   # Nom , prix
-   coursRock=[["","","",""],[0,0,0,0]]   # Nom , prix
-   nomGroupe=["","","",""]
-   jourpossible=["","","",""]
-   jourimpossible=["","","",""]
-   jourpeut_etre=["","","",""]
-   prixInstrument=[[0,0,0,0],[0,0,0,0]] # location instrument 1, instrument 2 
-   inf21a=False
-   parcours=False
+  # On traite la ligne
+  line=fichierSource.readline()
+  while line:  # On parcours l'ensemble des fiches
+    # declaration des tableaux, pour chaque eleve
+    nom=["","","",""]
+    prenom=["","","",""]
+    age=["","","",""]
+    reinscription=[False,False,False,False]
+    NiveauScolaire=["","","",""]
+    ParcoursCol=[["","","",""],[0,0,0,0]]   # Nom , prix
+    ParcoursComplet=[["","","",""],[0,0,0,0]]   # Nom , prix
+    Acc=[["","","",""],[0,0,0,0]]   # Nom , prix
+    CoursChant=[False,False,False,False]
+    PrixTotal=[0,0,0,0]
+    instrument1=["","","",""]
+    location1=[False,False,False,False]
+    instrument2=["","","",""]
+    location2=[False,False,False,False]
+    taille=["","","",""]
+    remarqueDispo=["","","",""]
+    nomProf=["","","",""]
+    orchestre=[["","","",""],[0,0,0,0]]   # Nom , prix
+    coursRock=[["","","",""],[0,0,0,0]]   # Nom , prix
+    nomGroupe=["","","",""]
+    jourpossible=["","","",""]
+    jourimpossible=["","","",""]
+    jourpeut_etre=["","","",""]
+    prixInstrument=[[0,0,0,0],[0,0,0,0]] # location instrument 1, instrument 2 
+    contact=[{'nom':"", 'tel':"",'mail':"",'ville':""},{'nom':"", 'tel':"",'mail':"",'ville':""}]
+    inf21a=False
+    parcours=False
+    cotisationFamille=30
+    reductionFamille=0
      
-   ecrire_log(line)
-   liste_data=line.split("\";\"")
-   count=0
-   eleve=-1
-   nb_inscrit=0
-   facture=False
-   dispositifSortir=False
-   volontaire=False
-   autorisePhoto=False
-   autoriseSortie=True
-   for data in liste_data: # On parcours les info de la fiche
+    ecrire_log(line)
+    liste_data=line.split("\";\"")
+    count=0
+    eleve=-1
+    nb_inscrit=0
+    facture=False
+    dispositifSortir=False
+    volontaire=False
+    autorisePhoto=False
+    autoriseSortie=True
+    for data in liste_data: # On parcours les info de la fiche
      count=count+1
      nomcoursAcc=""
      nomcoursOrc=""
@@ -418,27 +424,27 @@ while line:  # On parcours l'ensemble des fiches
       case 45 | 80 | 115 | 150: # Nom des groupes
             nomGroupe[eleve]=data
       case 151: # Nom et prenom contact
-        contact1=data
+        contact[0]['nom']=data
       case 152: 
-        tel1=data
+        contact[0]['tel']=data
       case 153:
-        mail1=data
+        contact[0]['mail']=data
       case 154:
-        ville1=data
+        contact[0]['ville']=data
       case 155: # ville si autre
         if data!="":
-          ville1=data
+          contact[0]['ville']=data
       case 156:
-        contact2=data  
+        contact[1]['nom']=data  
       case 157:
-        tel2=data
+        contact[1]['tel']=data
       case 158:
-        mail2=data
+        contact[1]['mail']=data
       case 159:
-        ville2=data
+        contact[1]['ville']=data
       case 160: # ville si autre
         if data!="":
-          ville2=data
+          contact[1]['ville']=data
       case 161: # Info complementaire
         if data=="X":
           facture=True
@@ -508,36 +514,37 @@ while line:  # On parcours l'ensemble des fiches
           
     # fin for, colonne suivante
      
-   if count>10: 
-    PrixFamille=30 # prix de l'adhesion
+    if count>10: # On a atteind la colonne du nombre d'inscrit
+      PrixFamille=cotisationFamille # prix de l'adhesion
 
-    for indice in range (int(nb_inscrit)):
-      # Calcul du prix famille
-      PrixFamille=PrixFamille+PrixTotal[indice]
+      for indice in range (int(nb_inscrit)):
+        # Calcul du prix famille
+        PrixFamille=PrixFamille+PrixTotal[indice]
 
-      ecrire_log("eleve: "+str(indice)+" nb colonne:"+ str(count)+" prix:"+ str(PrixTotal[indice])+" Etat:"+etat+" nb inscrit:"+str(nb_inscrit)+" nom:"+nom[indice]+
+        ecrire_log("eleve: "+str(indice)+" nb colonne:"+ str(count)+" prix:"+ str(PrixTotal[indice])+" Etat:"+etat+" nb inscrit:"+str(nb_inscrit)+" nom:"+nom[indice]+
          " prenom:"+prenom[indice]+" age:"+age[indice]+" reinscription:"+str(reinscription[indice])+
-         " NiveauScolaire:"+NiveauScolaire[indice]+" ParcoursCol:"+ParcoursCol[0][indice]+
-         " parcours:"+ParcoursComplet[0][indice]+" accompagnement:"+Acc[0][indice]+" chant:"+ str(CoursChant[indice])+
+         " NiveauScolaire:"+NiveauScolaire[indice]+" ParcoursCol:"+ParcoursCol[0][indice]+" Prix: "+str(ParcoursCol[1][indice])+
+         " parcours:"+ParcoursComplet[0][indice]+" Prix: "+str(ParcoursComplet[1][indice])+ "accompagnement:"+Acc[0][indice]+" Prix: "+str(Acc[1][indice])+" chant:"+ str(CoursChant[indice])+
          " instrument1:"+instrument1[indice]+" location1:"+str(location1[indice])+" instrument2:"+instrument2[indice]+
          " location2:"+str(location2[indice])+" taille:"+taille[indice]+" preference:"+jourpossible[indice]+
          " impossible:"+jourimpossible[indice]+" peut-être:"+jourpeut_etre[indice]+" remarquedispo:"+remarqueDispo[indice]+
-         " nom prof:"+nomProf[indice]+" orchestre:"+orchestre[0][indice]+
-         " groupe rock:"+coursRock[0][indice]+" nom groupe:"+nomGroupe[indice])
+         " nom prof:"+nomProf[indice]+" orchestre:"+orchestre[0][indice]+" Prix: "+str(orchestre[1][indice])+
+         " groupe rock:"+coursRock[0][indice]+" Prix: " +str(coursRock[1][indice])+ " nom groupe:"+nomGroupe[indice])
          # fin for indice
-      ecrire_log(" contact1:"+contact1+" tel1:"+tel1+" mail1:"+mail1+" ville1:"+ville1+
-         " contact2:"+contact2+" tel2:"+tel2+" mail2:"+mail2+" ville2:"+ville2+" facture:"+str(facture)+" sortir:"+str(dispositifSortir)+" aide:"+str(volontaire)+
+        ecrire_log(" contact1:"+contact[0]['nom']+" tel1:"+contact[0]['tel']+" mail1:"+contact[0]['mail']+" ville1:"+contact[0]['ville']+
+         " contact2:"+contact[0]['nom']+" tel2:"+contact[0]['tel']+" mail2:"+contact[0]['mail']+" ville2:"+contact[0]['ville']+" facture:"+str(facture)+" sortir:"+str(dispositifSortir)+" aide:"+str(volontaire)+
          " photo:"+str(autorisePhoto)+" prelevement:"+typeReglement+" autorise sortie:"+str(autoriseSortie)+" commentaire:"+commentaire)
-    # fin for nb inscrit
+      # fin for nb inscrit
     # calcul reduction famille
-    if PrixFamille>=900:
+    if PrixFamille>=minReduc:
       if int(nb_inscrit)>1:
-        PrixFamille=PrixFamille-15*(int(nb_inscrit)-1)
+        reductionFamille=prixReduc*(int(nb_inscrit)-1)
+        PrixFamille=PrixFamille-reductionFamille
    # fin si count>10
 
    # On redige le fichier
 #   cre_fichier_inscription()
-   line=fichierSource.readline()
+    line=fichierSource.readline()
 # fin while
 fichierSource.close()
 
