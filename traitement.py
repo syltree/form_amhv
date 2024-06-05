@@ -27,7 +27,7 @@ prixGroupAut=50
 prixLoc=150
 prixLocGuit=60
 prixLocHaut=180
-prixExterieur=80
+prixExterieur=80 # Prix pour une personne exterieur aux communes
 IndiceAge=0	 # Indice pour le prix selon l'age
 IndiceParcours=0 # Indice pour le prix selon le parcours, 0 dans la parcours 1 sinon
 CstReducFamille=15 # prix de la reduction Famille a partir du 2eme adherent au de à de minReduc
@@ -367,16 +367,16 @@ if __name__ == '__main__':
       case 24 | 59 | 94 | 129: # Location Instrument 1
         if data=="Oui":
           location1[eleve]=True
-          prixInstrument[1][eleve]=rechercheRrixInstrument(instrument1[eleve])
-          PrixTotal[eleve]=PrixTotal[eleve]+prixInstrument[1][eleve]
+          prixInstrument[0][eleve]=rechercheRrixInstrument(instrument1[eleve])
+          prixTotal[eleve]=PrixTotal[eleve]+prixInstrument[0][eleve]
           # print ("location1 Oui pour eleve:"+str(eleve)+nom[eleve])
       case 25 | 60 | 95 | 130: # Nom Instrument 2
         instrument2[eleve]=data
       case 26 | 61 | 96 | 131: # Location Instrument 2
         if data=="Oui":
           location2[eleve]=True
-          prixInstrument[2][eleve]=rechercheRrixInstrument(instrument2[eleve])
-          PrixTotal[eleve]=PrixTotal[eleve]+prixInstrument[2][eleve]
+          prixInstrument[1][eleve]=rechercheRrixInstrument(instrument2[eleve])
+          prixTotal[eleve]=PrixTotal[eleve]+prixInstrument[1][eleve]
       case 27 | 62 | 97 | 132: # Taille eleve
         taille[eleve]=data
       case 28 | 63 | 98 | 133: # Jour de preference
@@ -556,17 +556,18 @@ if __name__ == '__main__':
          " impossible:"+jourimpossible[indice]+" peut-être:"+jourpeut_etre[indice]+" remarquedispo:"+remarqueDispo[indice]+
          " nom prof:"+nomProf[indice]+" orchestre:"+orchestre[0][indice]+" Prix: "+str(orchestre[1][indice])+
          " groupe rock:"+coursRock[0][indice]+" Prix: " +str(coursRock[1][indice])+ " nom groupe:"+nomGroupe[indice])
-         # fin for indice
-        ecrire_log(" contact1:"+contact[0]['nom']+" tel1:"+contact[0]['tel']+" mail1:"+contact[0]['mail']+" ville1:"+contact[0]['ville']+
+         # fin for indice, fin nombre inscrit
+
+      ecrire_log(" contact1:"+contact[0]['nom']+" tel1:"+contact[0]['tel']+" mail1:"+contact[0]['mail']+" ville1:"+contact[0]['ville']+
          " contact2:"+contact[0]['nom']+" tel2:"+contact[0]['tel']+" mail2:"+contact[0]['mail']+" ville2:"+contact[0]['ville']+" facture:"+str(facture)+" sortir:"+str(dispositifSortir)+" aide:"+str(volontaire)+
          " photo:"+str(autorisePhoto)+" prelevement:"+typeReglement+" autorise sortie:"+str(autoriseSortie)+" commentaire:"+commentaire)
-      # fin for nb inscrit
-    # calcul reduction famille
-    if PrixFamille>=CstminReduc:
-      reductionFamille=CstReducFamille*(int(nb_inscrit)-1)
-      if int(nb_inscrit)>1:
-        PrixFamille=PrixFamille-reductionFamille
-    ecrire_log(" Prix Famille:"+str(PrixFamille))
+      
+      # calcul reduction famille
+      if PrixFamille>=CstminReduc:
+        reductionFamille=CstReducFamille*(int(nb_inscrit)-1)
+        if int(nb_inscrit)>1:
+          PrixFamille=PrixFamille-reductionFamille
+      ecrire_log(" Prix Famille:"+str(PrixFamille))
    # fin si count>10
 
    # On redige le fichier
