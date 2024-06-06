@@ -27,7 +27,7 @@ prixGroupAut=50
 prixLoc=150
 prixLocGuit=60
 prixLocHaut=180
-prixExterieur=80 # Prix pour une personne exterieur aux communes
+CstPrixExterieur=80 # Prix pour une personne exterieur aux communes
 IndiceAge=0	 # Indice pour le prix selon l'age
 IndiceParcours=0 # Indice pour le prix selon le parcours, 0 dans la parcours 1 sinon
 CstReducFamille=15 # prix de la reduction Famille a partir du 2eme adherent au de à de minReduc
@@ -267,8 +267,9 @@ if __name__ == '__main__':
     contact=[{'nom':"", 'tel':"",'mail':"",'ville':""},{'nom':"", 'tel':"",'mail':"",'ville':""}]
     typeReglement=""
     reductionFamille=0
-    nf21a=False
+    inf21a=False
     parcours=False
+    prixExterieur=CstPrixExterieur
      
     ecrire_log(line)
     liste_data=line.split("\";\"")
@@ -368,7 +369,7 @@ if __name__ == '__main__':
         if data=="Oui":
           location1[eleve]=True
           prixInstrument[0][eleve]=rechercheRrixInstrument(instrument1[eleve])
-          prixTotal[eleve]=PrixTotal[eleve]+prixInstrument[0][eleve]
+          PrixTotal[eleve]=PrixTotal[eleve]+prixInstrument[0][eleve]
           # print ("location1 Oui pour eleve:"+str(eleve)+nom[eleve])
       case 25 | 60 | 95 | 130: # Nom Instrument 2
         instrument2[eleve]=data
@@ -376,7 +377,7 @@ if __name__ == '__main__':
         if data=="Oui":
           location2[eleve]=True
           prixInstrument[1][eleve]=rechercheRrixInstrument(instrument2[eleve])
-          prixTotal[eleve]=PrixTotal[eleve]+prixInstrument[1][eleve]
+          PrixTotal[eleve]=PrixTotal[eleve]+prixInstrument[1][eleve]
       case 27 | 62 | 97 | 132: # Taille eleve
         taille[eleve]=data
       case 28 | 63 | 98 | 133: # Jour de preference
@@ -434,6 +435,7 @@ if __name__ == '__main__':
         contact[0]['ville']=data
         if data!="Autre":
           prixExterieur=0
+          ecrire_log("Non Exterieur  "+str(prixExterieur)+" Data: "+data)
       case 155: # ville si autre
         if data!="":
           contact[0]['ville']=data
@@ -447,6 +449,8 @@ if __name__ == '__main__':
         contact[1]['ville']=data
         if data!="Autre":
           prixExterieur=0
+          ecrire_log("Non Exterieur  "+str(prixExterieur))
+          ecrire_log("Non Exterieur  "+str(prixExterieur)+" Data: "+data)
       case 160: # ville si autre
         if data!="":
           contact[1]['ville']=data
@@ -535,17 +539,54 @@ if __name__ == '__main__':
      jour=""
           
     # fin for, colonne suivante
-     
+    #print("fin traitement colonne, nb inscrit"+str(nb_inscrit))
     if count>10: 
       PrixFamille=cotisationFamille # prix de l'adhesion
 
       if typeReglement[:3]==" + ":  # On suprime le + devant
-                ypeReglement=typeReglement[3:]
+        typeReglement=typeReglement[3:]
       
-
       for indice in range (int(nb_inscrit)):
+        #print("Calcul prix")
         # Calcul du prix famille
-        PrixFamille=PrixFamille+PrixTotal[indice]+prixExterieur  # prix exterieur est passe à 0 si pas exterieur
+        if prixExterieur>0:
+          # On passe le prix exterieur à 0 si pas de cours autre que orchestre
+          if Acc[1][indice]==0 and coursRock[1][indice]==0 and ParcoursCol[1][indice]==0 and ParcoursComplet[1][indice]==0:
+            prixExterieur=0
+
+          """  On ajoute le prix exterieur pour chaque cours
+          if Acc[1][indice]>0: # prix exterieur est aouté 
+           for nb_cours in Acc[0][indice].split(" + "): # on regarde combien d'inscription différente
+             Acc[1][indice]=Acc[1][indice]+prixExterieur
+             PrixTotal[indice]=PrixTotal[indice]+prixExterieur  # On ajoute au prix famille
+              ecrire_log("Exterieur pour cours Acc, ajoute "+prixExterieur)
+              # fin for nb_cours
+            # Fin si Acc
+          if coursRock[1][indice]>0: # prix exterieur est aouté 
+            for nb_cours in coursRock[0][indice].split(" + "): # on regarde combien d'inscription différente
+              coursRock[1][indice]=coursRock[1][indice]+prixExterieur
+              PrixTotal[indice]=PrixTotal[indice]+prixExterieur  # On ajoute au prix famille
+              ecrire_log("Exterieur pour cours Rock, ajoute "+str(prixExterieur))
+              # fin for nb_cours
+            # Fin si Rock
+          if ParcoursCol[1][indice]>0: # prix exterieur est aouté 
+              ParcoursCol[1][indice]=ParcoursCol[1][indice]+prixExterieur
+              PrixTotal[indice]=PrixTotal[indice]+prixExterieur  # On ajoute au prix famille
+              ecrire_log("Exterieur pour cours Collectif, ajoute "+str(prixExterieur))
+              # fin for nb_cours
+            # Fin si cours coll
+          if ParcoursComplet[1][indice]>0: # prix exterieur est aouté 
+              ParcoursComplet[1][indice]=ParcoursComplet[1][indice]+prixExterieur
+              PrixTotal[indice]=PrixTotal[indice]+prixExterieur  # On ajoute au prix famille
+              ecrire_log("Exterieur pour cours complet, ajoute "+str(prixExterieur))
+              # fin for nb_cours
+            # Fin si cours complet
+          """
+        # fin si prixexterieur  
+                 
+
+        PrixFamille=PrixFamille+PrixTotal[indice]+prixExterieur
+        #print("Log")
 
         ecrire_log("eleve: "+str(indice)+" nb colonne:"+ str(count)+" prix:"+ str(PrixTotal[indice])+" Etat:"+etat+" nb inscrit:"+str(nb_inscrit)+" nom:"+nom[indice]+
          " prenom:"+prenom[indice]+" age:"+age[indice]+" reinscription:"+str(reinscription[indice])+
@@ -559,7 +600,7 @@ if __name__ == '__main__':
          # fin for indice, fin nombre inscrit
 
       ecrire_log(" contact1:"+contact[0]['nom']+" tel1:"+contact[0]['tel']+" mail1:"+contact[0]['mail']+" ville1:"+contact[0]['ville']+
-         " contact2:"+contact[0]['nom']+" tel2:"+contact[0]['tel']+" mail2:"+contact[0]['mail']+" ville2:"+contact[0]['ville']+" facture:"+str(facture)+" sortir:"+str(dispositifSortir)+" aide:"+str(volontaire)+
+         " contact2:"+contact[1]['nom']+" tel2:"+contact[1]['tel']+" mail2:"+contact[1]['mail']+" ville2:"+contact[1]['ville']+" facture:"+str(facture)+" sortir:"+str(dispositifSortir)+" aide:"+str(volontaire)+
          " photo:"+str(autorisePhoto)+" prelevement:"+typeReglement+" autorise sortie:"+str(autoriseSortie)+" commentaire:"+commentaire)
       
       # calcul reduction famille
@@ -567,7 +608,7 @@ if __name__ == '__main__':
         reductionFamille=CstReducFamille*(int(nb_inscrit)-1)
         if int(nb_inscrit)>1:
           PrixFamille=PrixFamille-reductionFamille
-      ecrire_log(" Prix Famille:"+str(PrixFamille))
+      ecrire_log(" Prix exterieur inclus dans prixFamille: "+str(prixExterieur*int(nb_inscrit))+" Prix Famille:"+str(PrixFamille))
    # fin si count>10
 
    # On redige le fichier
