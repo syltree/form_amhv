@@ -5,6 +5,9 @@ from datetime import datetime
 
 # fonctionne avec le resultat telecharger en csv avec le séparateur ";"  et en mode separe
 from fpdf import FPDF
+import sys
+from gen_pdf import generate_pdf
+
 
 
 prixDecJardin=100
@@ -32,7 +35,7 @@ IndiceAge=0	 # Indice pour le prix selon l'age
 IndiceParcours=0 # Indice pour le prix selon le parcours, 0 dans la parcours 1 sinon
 CstReducFamille=15 # prix de la reduction Famille a partir du 2eme adherent au de à de minReduc
 CstminReduc=900 # Prix minimum pour obtenir la reduc famille
-cotisationFamille=30
+CstcotisationFamille=30
 
 def ecrire_log(data):
 	fichierLog.write(data+"\n")
@@ -116,16 +119,16 @@ def extrairePrix(data,age,boolparcours):
 def rechercheRrixInstrument(instrument):
   match instrument:
     case "Les instruments amplifiés : guitare électrique" | "Les cordes : guitare classique":
-      return 60
+      return prixLocGuit
     case "Les instruments traditionnels : harpe celtique":
-      return 180
+      return prixLocHaut
     case _:
-      return 160
+      return prixLoc
     
 # Fin rechercheRrixInstrument
 
 
-
+"""
 def cre_fichier_inscription():
   
   pdf = FPDF('P', 'mm', 'A4')  # Mode portrait, utilisation des mm et page A4
@@ -136,9 +139,9 @@ def cre_fichier_inscription():
   margelist=20
   
   #doc = Document(nom[0])
-  """Add a section, a subsection and some text to the document.
-      :type doc: :class:`pylatex.document.Document` instance
-  """
+  #Add a section, a subsection and some text to the document.
+  #    :type doc: :class:`pylatex.document.Document` instance
+  
   indice_eleve=0
   for indice_eleve in range (int(nb_inscrit)):
      pdf.set_font('Arial', 'B', 12) # Arial, Bold 12
@@ -219,7 +222,7 @@ def cre_fichier_inscription():
 
 # fin cre_fichier_inscription
 
-
+"""
 
 # Debut prog
 if __name__ == '__main__':
@@ -270,23 +273,28 @@ if __name__ == '__main__':
     inf21a=False
     parcours=False
     prixExterieur=CstPrixExterieur
-     
-    ecrire_log(line)
-    liste_data=line.split("\";\"")
-    count=0
-    eleve=-1
-    nb_inscrit=0
+    commentaire=""
+    cotisationFamille=CstcotisationFamille
     facture=False
     dispositifSortir=False
     volontaire=False
     autorisePhoto=False
     autoriseSortie=True
-    for data in liste_data: # On parcours les info de la fiche
-     count=count+1
+
+    ecrire_log(line)
+    liste_data=line.split("\";\"")
+    count=0
+    eleve=-1
+    nb_inscrit=0
+    
+    for data in liste_data: # On parcours les info de la fiche pour chaque famille (chaque ligne)
+     count=count+1  # défini la colonne du csv
+     # Initialisation des variables temporaires
      nomcoursAcc=""
      nomcoursOrc=""
      nomcoursRock=""
      jour=""
+     
      match count:
       case 6: 
          if liste_entete[count-1]!="Brouillon":
@@ -309,7 +317,8 @@ if __name__ == '__main__':
           ecrire_log("Erreur entete non correcte: "+liste_entete[count-1]+" numéro colonne: "+str(count))
         eleve=eleve+1 # On a un nouvel eleve
         parcours=False  # On initialise le parcours a false, le met a true si une formation dans le parcours est choisie plus tard
-        if data=="":  # Le nom est vide, on prend donc le nom de l'elever precedent (le 1er ne peut pas etre vide)
+        print("eleve "+str(eleve)+" nb inscrit "+nb_inscrit)
+        if data=="" and eleve<int(nb_inscrit):  # Le nom est vide, on prend donc le nom de l'elever precedent (le 1er ne peut pas etre vide)
             nom[eleve]=nom[eleve-1]
         else:  
             nom[eleve]=data
@@ -369,7 +378,7 @@ if __name__ == '__main__':
         if data=="Oui":
           location1[eleve]=True
           prixInstrument[0][eleve]=rechercheRrixInstrument(instrument1[eleve])
-          PrixTotal[eleve]=PrixTotal[eleve]+prixInstrument[0][eleve]
+          # PrixTotal[eleve]=PrixTotal[eleve]+prixInstrument[0][eleve] # le prix de la location n'est pas facturé à l'inscription
           # print ("location1 Oui pour eleve:"+str(eleve)+nom[eleve])
       case 25 | 60 | 95 | 130: # Nom Instrument 2
         instrument2[eleve]=data
@@ -377,7 +386,7 @@ if __name__ == '__main__':
         if data=="Oui":
           location2[eleve]=True
           prixInstrument[1][eleve]=rechercheRrixInstrument(instrument2[eleve])
-          PrixTotal[eleve]=PrixTotal[eleve]+prixInstrument[1][eleve]
+          # PrixTotal[eleve]=PrixTotal[eleve]+prixInstrument[1][eleve] # le prix de la location n'est pas facturé à l'inscription
       case 27 | 62 | 97 | 132: # Taille eleve
         taille[eleve]=data
       case 28 | 63 | 98 | 133: # Jour de preference
@@ -609,10 +618,24 @@ if __name__ == '__main__':
         if int(nb_inscrit)>1:
           PrixFamille=PrixFamille-reductionFamille
       ecrire_log(" Prix exterieur inclus dans prixFamille: "+str(prixExterieur*int(nb_inscrit))+" Prix Famille:"+str(PrixFamille))
+
+      if etat=="valide":
+          # Génération du PDF
+        fic_pdf = './inscription'+contact[0]['nom']+'.pdf'
+        status, msg = generate_pdf(fic_pdf, globals(), debug=True)
+        if status:
+          ecrire_log("OK: fichier PDF: '%s' / répertoire fichiers Latex: '%s'" % (fic_pdf, msg))
+        else:
+          ecrire_log("Erreur:", msg)
+          print("Erreur:", msg)
+
+
    # fin si count>10
 
    # On redige le fichier
 #   cre_fichier_inscription()
+
+
     line=fichierSource.readline()
 # fin while
 fichierSource.close()
