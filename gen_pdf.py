@@ -48,7 +48,7 @@ Ville: @D_contact#ville@ \\\\
 
 TEMPLATE_INSCRIPTIONS = """
 \section{Liste des élèves inscrits}
-Nombres d'élèves inscrits: @V_nb_eleves@ \\\\
+Nombres d'élèves inscrits: @V_nb_inscrit@ \\\\
 """
 
 TEMPLATE_ELEVE = """
@@ -85,14 +85,12 @@ TEMPLATE_COUTS = """
 \section{Montant inscription(s)}
 
 Ce tableau récapitule le montant total pour votre inscription. \\\\
+\\textbf{Important:} si vous avez demandé la location d'instrument(s), seul le montant sans location est
+  à régler pour l'inscription.\\\\
 
 """
 
 TEMPLATE_FIN = """
-
-\\noindent
-Type de règlement: @V_typeReglement@ \\\\
-
 \section{Informations complémentaires}
 
 Demande de facture: @V_facture@ \\\\
@@ -102,18 +100,34 @@ Autorise la publication de photo(s): @V_autorisePhoto@ \\\\
 Autorisation enfant(s) à sortir seul des cours: @V_autoriseSortie@ \\\\
 
 \\noindent
+Vos commentaires lors de l'inscription: @V_commentaire@ \\\\
+
+\\noindent
 Pour rappel, vous avez accepté les conditions d'inscriptions suivantes:
-\\begin{enumerate}
-\item Disposer d'une assurance de responsabilité civile.
-\item Signaler toute absence de professeur en début de cours.
-\item ... etc
-\end{enumerate}
+\\begin{itemize}
+\item[\\textbullet] Je certifie être bien assuré-e au titre de la responsabilité civile ou être assuré-e pour des activités extra-scolaires.
+\item[\\textbullet] Avoir pris connaissance du règlement intérieur de l'école et m'engager à le respecter (cf site internet).
+\item[\\textbullet] Je dois m'assurer de la présence de l'enseignant au début du cours, l'école déclinant toute responsabilité en cas d'accident en dehors des cours.
+\item[\\textbullet] Je dois m'assurer de la prise en charge de chaque élève à l'heure de fin de cours, les enseignants ne pouvant assurer la surveillance passé ce délai.
+\item[\\textbullet] J'accepte de me voir refuser un cours collectif ou un ensemble si le nombre minimum d'élèves n'est pas atteint.
+\item[\\textbullet] Après 2 cours l'inscription est considérée comme définitive. Toute année commencée est due et non remboursable.
+Sauf en cas d'incapacité médicale reconnue ou de déménagement. Dans ce cas prévenir par courrier ou par mail le 
+secrétariat 15 jours avant le début d'un trimestre pour être remboursé. Ni la carte d'adhérent ni les 2 premiers cours 
+ne sont remboursés.
+\item[\\textbullet] Je suis informé·e que les informations recueillies sur ce formulaire sont enregistrées dans un fichier 
+informatisé à la seule fin d'organisation des activités, de contact en cas d'urgence et de facturation. Elles sont 
+conservées aussi longtemps que vous êtes susceptible de participer aux activités. Hormis les professeurs en charge de 
+l'activité, nous nous engageons à ne communiquer aucune de vos données à des tiers, même partenaires. Conformément 
+au RGPD, vous pouvez exercer votre droit d'accès aux données vous concernant et les faire rectifier en vous adressant 
+au secrétariat.
+\end{itemize}
 
 \\noindent
-Vous disposez de 8 jours pour régler le montant de cette inscription. \\\\
-
-\\noindent
-Si vous avez souscrit un cours collectif, il est nécessaire de passer au secrétariat pour la réservation du créneau. \\\\
+\\textbf{IMPORTANT:}
+\\begin{itemize}
+\item[\\textbullet] Vous disposez de 8 jours pour régler le montant de cette inscription.
+\item[\\textbullet] Si vous avez souscrit un cours collectif, il est nécessaire de passer au secrétariat pour la réservation du créneau. 
+\end{itemize}
 
 \end{document}
 """
@@ -237,7 +251,10 @@ def generate_pdf(pdf_file:str, d_traitement, debug:bool=False):
                 continue
             if variable_double:
                 eleve[nom_var + '_1'] = valeur
-                eleve[nom_var + '_2'] = variable[1][i]
+                # Pour une variable double, on ne tient pas compte de la 2ème valeur si elle est non définie, par
+                # exemple le prix de location du second instrument
+                if variable[1][i]:
+                    eleve[nom_var + '_2'] = variable[1][i]
             else:
                 eleve[nom_var] = valeur
 
@@ -251,9 +268,9 @@ def generate_pdf(pdf_file:str, d_traitement, debug:bool=False):
 
     all_contact = get_variable('contact')
     d_vars['contact_principal'] = all_contact[0]['nom']
-    nb_eleves = len(get_variable('nom'))
-    d_vars['nb_eleves'] = nb_eleves
-    
+
+    nb_eleves = int(get_variable('nb_inscrit'))
+
     # 1) Génération du fichier Latex
     path_rep_stockage = mkdtemp()
     fd_fic_latex = open(os.path.join(path_rep_stockage, 'inscription.tex'), mode='w')
@@ -295,7 +312,7 @@ def generate_pdf(pdf_file:str, d_traitement, debug:bool=False):
     l_prenoms = get_variable('prenom')
     l_prix_total = get_variable('PrixTotal')
     l_prix_loc_instrus = get_variable('prixInstrument')
-    tex_content += "\\begin{tabular}{|l|c|c|c|}\n  \hline\n  \\textbf{Prénom} & \\textbf{Prix cours} & \\textbf{Prix loc} & \\textbf{Total}\\\ \n"
+    tex_content += "\\begin{tabular}{|l|c|c|c|}\n  \hline\n  \\textbf{Prénom} & \\textbf{Prix cours (€)} & \\textbf{Prix loc (€)} & \\textbf{Total (€)}\\\ \n"
     tex_content += "  \hline\n  \hline\n"
     total_cours = 0
     total_loc = 0
@@ -314,11 +331,26 @@ def generate_pdf(pdf_file:str, d_traitement, debug:bool=False):
     reduction = int(get_variable('reductionFamille'))
     if reduction:
         tex_content += "  Réduction famille & & & -%d\\\ \n" % reduction
-    tex_content += ("  \hline\n  \\textbf{Total} & & & %d\\\ \n"
-                    % (total_cours + total_loc + get_variable('cotisationFamille') -reduction))
+    val = total_cours + total_loc + get_variable('cotisationFamille') -reduction
+    if total_loc:
+        tex_content += ("  \hline\n  \\textit{< Total avec location >} & & & \\textit{%d}\\\ \n" % val)
+    tex_content += ("  \hline\n  \\textbf{Total pour inscription} & & & %d\\\ \n" % (val - total_loc))
     tex_content += "  \hline\n\end{tabular}\n"
 
-    # d) Fin fichier
+    # d) Type de règlement
+    l_reglement = get_variable('typeReglement').split('+')
+    if len(l_reglement) == 1:
+        tex_content += "\\newline\\newline\\noindent\nType de règlement: %s\n" % l_reglement[0].rstrip().lstrip()
+    else:
+        tex_content += "\\newline\\newline\\noindent\nType de règlement:\n\\begin{itemize}\n"
+        for val in l_reglement:
+            text = val.rstrip().lstrip()
+            if not text.endswith('.'):
+                text += '.'
+            tex_content += "\item[\\textbullet] %s \n" % text
+        tex_content += "\end{itemize}\n"
+
+    # e) Fin fichier
     tex_content += fill(TEMPLATE_FIN)
 
     # 2) Ecrit le fichier Latex

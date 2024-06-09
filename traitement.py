@@ -226,7 +226,11 @@ def cre_fichier_inscription():
 
 # Debut prog
 if __name__ == '__main__':
-  fichierSource = open("Atraiter.csv", "r",encoding='UTF-8')
+  if len(sys.argv) == 2:
+      filepath = sys.argv[1]
+  else:
+      filepath = "./ATraiter.csv"
+  fichierSource = open(filepath, "r",encoding='UTF-8')
   fichierDestination = open("Dest.txt", "w")
   fichierLog=open("Log.txt","w")
 
@@ -317,7 +321,6 @@ if __name__ == '__main__':
           ecrire_log("Erreur entete non correcte: "+liste_entete[count-1]+" numéro colonne: "+str(count))
         eleve=eleve+1 # On a un nouvel eleve
         parcours=False  # On initialise le parcours a false, le met a true si une formation dans le parcours est choisie plus tard
-        print("eleve "+str(eleve)+" nb inscrit "+nb_inscrit)
         if data=="" and eleve<int(nb_inscrit):  # Le nom est vide, on prend donc le nom de l'elever precedent (le 1er ne peut pas etre vide)
             nom[eleve]=nom[eleve-1]
         else:  
@@ -621,13 +624,15 @@ if __name__ == '__main__':
 
       if etat=="valide":
           # Génération du PDF
-        fic_pdf = './inscription'+contact[0]['nom']+'.pdf'
+        nom_tmp = contact[0]['nom']
+        fic_pdf = './inscription_' + nom_tmp.replace(' ', '_') + '.pdf'
         status, msg = generate_pdf(fic_pdf, globals(), debug=True)
         if status:
           ecrire_log("OK: fichier PDF: '%s' / répertoire fichiers Latex: '%s'" % (fic_pdf, msg))
         else:
-          ecrire_log("Erreur:", msg)
+          ecrire_log("Erreur: " + msg)
           print("Erreur:", msg)
+          _ = input("Appuyer sur Entrée pour continuer ...")
 
 
    # fin si count>10
