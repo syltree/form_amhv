@@ -1,11 +1,12 @@
 #!/usr/bin/python3
+# -*- coding: utf-8 -*-
+
 """
 Librairie pour la génération du fichier PDF à partir des variables qui ont été parsées dans le programme principal
 Fonction à invoquer: generate_pdf
 Une partie 'main' est fournie uniquement à titre d'exemple
 !!! IMPORTANT !!! nécessite les utilitaires Latex -> installer le paquet 'texlive-latex-recommended' sous Ubuntu
-Ressources:
-https://texdoc.org/serve/fontspec/0
+Ressources: https://texdoc.org/serve/fontspec/0
 """
 
 # IMPORTS
@@ -27,6 +28,8 @@ TEMPLATE_ENTETE = """
 \documentclass[a4paper,12pt]{article}
 \\usepackage[T1]{fontenc}
 \\usepackage[utf8]{inputenc}
+\\usepackage{lmodern}
+\\usepackage{underscore}
 \DeclareUnicodeCharacter{2212}{-}
 
 % Les infos pour maketitle
@@ -61,6 +64,7 @@ Parcours collectif: @D_eleve#ParcoursCol_1@ \\\\
 Parcours collectif coût: @D_eleve#ParcoursCol_2@ \\\\
 Parcours complet: @D_eleve#ParcoursComplet_1@ \\\\
 Parcours complet coût: @D_eleve#ParcoursComplet_2@ \\\\
+Suivi cours chant: @D_eleve#CoursChant@ \\\\
 Acc. pratique amateur: @D_eleve#Acc_1@ \\\\
 Acc. pratique amateur coût: @D_eleve#Acc_2@ \\\\
 Nom professeur: @D_eleve#nomProf@ \\\\
@@ -73,11 +77,11 @@ Pratique orchestre coût: @D_eleve#orchestre_2@ \\\\
 Pratique groupe: @D_eleve#coursRock_1@ \\\\
 Pratique groupe coût: @D_eleve#coursRock_2@ \\\\
 Nom groupe: @D_eleve#nomGroupe@ \\\\
+Coût total des cours (hors location): @D_eleve#PrixTotal@ \\\\
 Instrument n°1: @D_eleve#instrument1@ \\\\
 Location instrument n°1 coût: @D_eleve#prixInstrument_1@ \\\\
 Instrument n°2: @D_eleve#instrument2@ \\\\
 Location instrument n°2 coût: @D_eleve#prixInstrument_2@ \\\\
-Coût total: @D_eleve#PrixTotal@ \\\\
 
 """
 
@@ -85,16 +89,21 @@ TEMPLATE_COUTS = """
 \section{Montant inscription(s)}
 
 Ce tableau récapitule le montant total pour votre inscription. \\\\
-\\textbf{Important:} si vous avez demandé la location d'instrument(s), seul le montant sans location est
-  à régler pour l'inscription.\\\\
+\\textbf{Important:}
+\\begin{itemize}
+\item[\\textbullet] Si vous avez demandé la location d'instrument(s), seul le montant sans location est à régler pour l'inscription. 
+\item[\\textbullet] Vous disposez de 8 jours pour régler le montant de cette inscription.
+\item[\\textbullet] Si vous avez souscrit un cours collectif, il est nécessaire de passer au secrétariat pour la réservation du créneau. 
+\end{itemize}
 
 """
 
 TEMPLATE_FIN = """
+
 \section{Informations complémentaires}
 
 Demande de facture: @V_facture@ \\\\
-% TODO fixer Bénéficiaire du dispositif 'Sortir' car variable 'dispositifsortir' non fournie \\\\
+Bénéficiaire du dispositif 'Sortir': @V_dispositifSortir@ \\\\
 Bénévole pour aider: @V_volontaire@ \\\\
 Autorise la publication de photo(s): @V_autorisePhoto@ \\\\
 Autorisation enfant(s) à sortir seul des cours: @V_autoriseSortie@ \\\\
@@ -103,7 +112,7 @@ Autorisation enfant(s) à sortir seul des cours: @V_autoriseSortie@ \\\\
 Vos commentaires lors de l'inscription: @V_commentaire@ \\\\
 
 \\noindent
-Pour rappel, vous avez accepté les conditions d'inscriptions suivantes:
+Pour rappel, \\textbf{vous avez accepté les conditions d'inscriptions} suivantes:
 \\begin{itemize}
 \item[\\textbullet] Je certifie être bien assuré-e au titre de la responsabilité civile ou être assuré-e pour des activités extra-scolaires.
 \item[\\textbullet] Avoir pris connaissance du règlement intérieur de l'école et m'engager à le respecter (cf site internet).
@@ -122,31 +131,38 @@ au RGPD, vous pouvez exercer votre droit d'accès aux données vous concernant e
 au secrétariat.
 \end{itemize}
 
-\\noindent
-\\textbf{IMPORTANT:}
-\\begin{itemize}
-\item[\\textbullet] Vous disposez de 8 jours pour régler le montant de cette inscription.
-\item[\\textbullet] Si vous avez souscrit un cours collectif, il est nécessaire de passer au secrétariat pour la réservation du créneau. 
-\end{itemize}
-
 \end{document}
 """
+
 
 # FONCTIONS
 ###########
 
-def get_variable(nom_variable:str, raise_exception=True):
+def normalize_value(val):
+    """
+    Si val est de type booléen, retourne une str(oui/non); si val est de type str, "escape" chaque caractère '&'
+    :param val: type 'any'
+    :return: str si val est de type bool, sinon le même type que val
+    """
+    if type(val) is bool:
+        if val:
+            return 'oui'
+        else:
+            return 'non'
+    elif type(val) is str:
+        return val.replace('&', '\x5C&')
+    return val
+
+
+def get_variable(nom_variable: str, raise_exception=True):
     # Cette fonction retourne la valeur de la variable ou génère une exception
     res = d_vars.get(nom_variable)
     if res is None and raise_exception:
         raise Exception("variable '%s' non trouvée dans d_vars" % nom_variable)
-    if res is True:
-        res = 'oui'
-    if res is False:
-        res = 'non'
-    return res
+    return normalize_value(res)
 
-def get_champ_dict(nom_dict:str, nom_champ:str, raise_exception=True):
+
+def get_champ_dict(nom_dict: str, nom_champ: str, raise_exception=True):
     # Cette fonction retourne la valeur du champ du dict ou génère une exception
     dict_temp = d_vars.get(nom_dict)
     if dict_temp is None:
@@ -157,20 +173,22 @@ def get_champ_dict(nom_dict:str, nom_champ:str, raise_exception=True):
     res = dict_temp.get(nom_champ)
     if res is None and raise_exception:
         raise Exception("champ '%s' non trouvé dans dict '%s'" % (nom_champ, nom_dict))
-    return res
+    return normalize_value(res)
 
-def get_index_liste(nom_liste:str, index:str, raise_exception=True):
+
+def get_index_liste(nom_liste: str, index: str, raise_exception=True):
     # Cette fonction retourne la valeur à l'index indiqué dans la liste ou génère une exception
     list_temp = d_vars.get(nom_liste)
-    if list_temp is None:
+    if list_temp is None or type(list_temp) is not list:
         if raise_exception:
             raise Exception("liste '%s' non trouvée dans d_vars" % nom_liste)
         else:
             return None
     # La commande suivante génère une exception si index est invalide
-    return list_temp[int(index)]
+    return normalize_value(list_temp[int(index)])
 
-def fill(pattern:str, raise_exception=True):
+
+def fill(pattern: str, raise_exception=True):
     """
     Remplace les labels par leurs valeurs
     param: pattern: le modèle Latex contenant les labels à remplacer
@@ -216,7 +234,15 @@ def fill(pattern:str, raise_exception=True):
         pattern = out
     return pattern
 
-def generate_pdf(pdf_file:str, d_traitement, debug:bool=False):
+
+def decode(in_text: str):
+    try:
+        return in_text.decode('utf-8')
+    except UnicodeDecodeError:
+        return in_text.decode('ISO-8859-1')
+
+
+def generate_pdf(pdf_file: str, d_traitement, debug: bool = False):
     """
     param: pdf_file: le chemin vers le fichier PDF qui sera généré
     param: d_traitement: le dict globals() issu de traitement.by
@@ -226,7 +252,8 @@ def generate_pdf(pdf_file:str, d_traitement, debug:bool=False):
             status: bool: True si exécution OK, False sinon
             msg: str: le message d'erreur si souci sinon le répertoire contenant les fichiers latex temporaires
     """
-    def get_global_var(i: int, l_nom_var: list, variable_double: bool=False):
+
+    def get_global_var(i: int, l_nom_var: list, variable_double: bool = False):
         for nom_var in l_nom_var:
             # Par définition 'variable' doit être trouvée, sinon génère une exception
             variable = d_vars.get(nom_var)
@@ -282,6 +309,8 @@ def generate_pdf(pdf_file:str, d_traitement, debug:bool=False):
         if not contact['nom']:
             break
         d_vars['contact'] = contact
+        if i == 0:
+            ville_contat = get_champ_dict('contact', 'ville')
         tex_content += fill(TEMPLATE_CONTACT)
 
     # b) Liste des élèves
@@ -310,7 +339,7 @@ def generate_pdf(pdf_file:str, d_traitement, debug:bool=False):
     # c) Tableau des coûts
     tex_content += fill(TEMPLATE_COUTS)
     l_prenoms = get_variable('prenom')
-    l_prix_total = get_variable('PrixTotal')
+    l_prix_total_cours = get_variable('PrixTotal')
     l_prix_loc_instrus = get_variable('prixInstrument')
     tex_content += "\\begin{tabular}{|l|c|c|c|}\n  \hline\n  \\textbf{Prénom} & \\textbf{Prix cours (€)} & \\textbf{Prix loc (€)} & \\textbf{Total (€)}\\\ \n"
     tex_content += "  \hline\n  \hline\n"
@@ -320,18 +349,29 @@ def generate_pdf(pdf_file:str, d_traitement, debug:bool=False):
         if not l_prenoms[i]:
             break
         prix_loc = l_prix_loc_instrus[0][i] + l_prix_loc_instrus[1][i]
-        prix_total = l_prix_total[i]
-        prix_cours = prix_total - prix_loc
-        tex_content += "  %s & %d & %d & %d\\\ \n" % (l_prenoms[i], prix_cours, prix_loc, prix_total)
-        total_cours += prix_cours
+        prix_total_cours = l_prix_total_cours[i]
+        tex_content += "  %s & %d & %d & %d\\\ \n" % (
+        l_prenoms[i], prix_total_cours, prix_loc, prix_total_cours + prix_loc)
+        total_cours += prix_total_cours
         total_loc += prix_loc
-    tex_content += "  \hline\n  \\textbf{Sous-total} & %d & %d & %d\\\ \n" % (total_cours, total_loc, total_cours + total_loc)
+    tex_content += "  \hline\n  \\textbf{Sous-total} & %d & %d & %d\\\ \n" % (
+    total_cours, total_loc, total_cours + total_loc)
     tex_content += "  \hline\n"
-    tex_content += "  Cotisation & & & %d\\\ \n" % get_variable('cotisationFamille')
+    tex_content += "  Cotisation AMHV & & & %d\\\ \n" % get_variable('cotisationFamille')
     reduction = int(get_variable('reductionFamille'))
     if reduction:
         tex_content += "  Réduction famille & & & -%d\\\ \n" % reduction
-    val = total_cours + total_loc + get_variable('cotisationFamille') -reduction
+    # !!! le get suivant ne marche pas car prixExterieur est toujours égal à 0 !!!
+    # prix_exterieur = int(get_variable('prixExterieur'))
+    # HACK très vilain ...
+    start = ville_contat.upper()[:2]
+    if start in ['AC', 'BR', 'NO', 'TH']:
+        prix_exterieur = 0
+    else:
+        prix_exterieur = int(input('Prix exterieur pour: %s (80) ? ' % ville_contat))
+    if prix_exterieur:
+        tex_content += "  Cotisation hors-commune & & & %d\\\ \n" % prix_exterieur
+    val = total_cours + total_loc + prix_exterieur + get_variable('cotisationFamille') - reduction
     if total_loc:
         tex_content += ("  \hline\n  \\textit{< Total avec location >} & & & \\textit{%d}\\\ \n" % val)
     tex_content += ("  \hline\n  \\textbf{Total pour inscription} & & & %d\\\ \n" % (val - total_loc))
@@ -364,7 +404,7 @@ def generate_pdf(pdf_file:str, d_traitement, debug:bool=False):
     res = subprocess.run(['pdflatex', '-interaction=nonstopmode', opt_output_dir, 'inscription.tex'],
                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if res.returncode:
-        return False, res.stdout.decode('utf-8') + res.stderr.decode('utf-8')
+        return False, decode(res.stdout) + decode(res.stderr)
     # Deplace le fichier résultat
     res = subprocess.run(['mv', os.path.join(path_rep_stockage, 'inscription.pdf'), pdf_file],
                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
