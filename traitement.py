@@ -47,6 +47,8 @@ CstReducFamille = 15  # prix de la reduction Famille a partir du 2eme adherent a
 CstminReduc = 900  # Prix minimum pour obtenir la reduc famille
 CstcotisationFamille = 30
 ListeMailEnvoye="ListeMailEnvoye.txt"
+FicConfig="config.ini"
+FicAccess="acces.ini"
 
 
 def ecrire_log(data):
@@ -163,6 +165,22 @@ if __name__ == '__main__':
     # Les fichiers existant ne sont pas remplacés, sauf avec l'option -s. Avec cette option si 2 meme nom sont traités dans le même cycle seul le 2eme restera dans le répertoire
     args = parser.parse_args()
     filepath = args.f
+    pwd_sender=""
+    config_acces = configparser.ConfigParser()
+    if os.path.exists(FicAccess):
+        config_acces.read(FicAccess)
+        try:
+            pwd_sender=config_acces['acces']['password']
+        except KeyError:
+            pwd_sender=""
+    LaConfig = configparser.ConfigParser()
+    if not os.path.exists(FicConfig):
+        print("ERREUR ---- pas de fichier de configuration")
+        quit()
+
+
+        
+
 
     # Créé le répertoire pour stockage des PDFs s'il n'existe pas
     if not os.path.exists(REP_PDFS):
@@ -170,9 +188,10 @@ if __name__ == '__main__':
 
     # Demande le password si envoie des mails
     if args.m:
-        sender = 'amhv'
-        pwd_sender = input('Mot de passe pour expéditeur %s@orange.fr ? ' % sender)
-
+        if pwd_sender=="":
+            sender = 'amhv'
+            pwd_sender = input('Mot de passe pour expéditeur %s@orange.fr ? ' % sender)
+    
     fichierSource = open(filepath, "r", encoding='UTF-8')
     fichierLog = open("Log.txt", "w")
     if args.r:
