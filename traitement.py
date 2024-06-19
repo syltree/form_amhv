@@ -15,6 +15,8 @@ import os
 import subprocess
 import shlex
 import time
+import configparser
+
 
 REP_PDFS = './PDFs'
 
