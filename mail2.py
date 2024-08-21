@@ -23,22 +23,22 @@ pip install PyEmail
 
 
 # envoie %Mail
-def envoieMail(destinataire, nom_pdf, password, sender_user='amhv'):
+def envoieMail(destinataire, nom_pdf, password, sender_user='amhv',cc_mail='contact@amhv.fr'):
 
-    config = configparser.ConfigParser()
     # Extrait le nom de contact
     m = re.search(r'inscription_(.+)\.pdf', nom_pdf)
     nom_contact = m.groups(0)[0]
     _, filename_fin = os.path.split(nom_pdf)
 
-    fournisseur = "orange.fr"
-    smtp_server = "smtp." + fournisseur
+    fournisseur = '@'+sender_user.split('@')[1]
+    
+    smtp_server = "smtp." + fournisseur[1:]
     port = 587
-    sender_email = sender_user + '@' + fournisseur
+    sender_email = sender_user
     receiver_email = destinataire  # Enter receiver address
     # Create a secure SSL context
     context = ssl.create_default_context()
-    print("Envoie du mail a:" + receiver_email)
+    print("Envoie du mail a:" + receiver_email +"par serveur:"+smtp_server)
 
     # Try to log in to server and send email
     try:
@@ -65,7 +65,6 @@ L'équipe AMHV"""
         message["From"] = sender_email
         message["To"] = receiver_email
         message["Subject"] = subject
-        cc_mail = "contact@amhv.fr"
         message["Cc"] = cc_mail
         #message["Bcc"] = receiver_email  # Recommended for mass emails
 

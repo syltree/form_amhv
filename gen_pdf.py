@@ -20,6 +20,8 @@ import subprocess
 # DEFINES
 #########
 
+DEBUG = True
+
 # Le nombre max d'élève dans la fiche d'inscription, et donc la taille de chaque tableau
 NB_ELEVES_MAX = 4
 
@@ -30,7 +32,10 @@ TEMPLATE_ENTETE = """
 \\usepackage[utf8]{inputenc}
 \\usepackage{lmodern}
 \\usepackage{underscore}
+\\usepackage{graphicx}
 \DeclareUnicodeCharacter{2212}{-}
+\setlength{\oddsidemargin}{1pt}
+\setlength{\evensidemargin}{1pt}
 
 % Les infos pour maketitle
 \\title{Inscription AMHV 2024-2025 pour '@V_contact_principal@'}
@@ -38,15 +43,20 @@ TEMPLATE_ENTETE = """
 \\begin{document}
 \maketitle
 
+\section{Liste des élèves inscrits}
+Nombres d'élèves inscrits: @V_nb_inscrit@ \\\\
+"""
+
+TEMPLATE_INFOS_CONTACT = """
 \section{Informations de contact}
 """
 
 TEMPLATE_CONTACT = """
 \\noindent
-Nom: @D_contact#nom@ \\\\
-Tel: @D_contact#tel@ \\\\
-Mail: @D_contact#mail@ \\\\
-Ville: @D_contact#ville@ \\\\
+\\textbf{Nom}: @D_contact#nom@ \\\\
+\\textbf{Tel}: @D_contact#tel@ \\\\
+\\textbf{Mail}: @D_contact#mail@ \\\\
+\\textbf{Adresse}: @D_contact#adresse_full@ \\\\
 """
 
 TEMPLATE_INSCRIPTIONS = """
@@ -56,42 +66,47 @@ Nombres d'élèves inscrits: @V_nb_inscrit@ \\\\
 
 TEMPLATE_ELEVE = """
 \subsection{Elève @D_eleve#prenom@}
-Nom: @D_eleve#nom@ \\\\
-Age: @D_eleve#age@ \\\\
-Taille: @D_eleve#taille@ \\\\
-Niveau scolaire: @D_eleve#NiveauScolaire@ \\\\
-Parcours collectif: @D_eleve#ParcoursCol_1@ \\\\
-Parcours collectif coût: @D_eleve#ParcoursCol_2@ \\\\
-Parcours complet: @D_eleve#ParcoursComplet_1@ \\\\
-Parcours complet coût: @D_eleve#ParcoursComplet_2@ \\\\
-Suivi cours chant: @D_eleve#CoursChant@ \\\\
-Acc. pratique amateur: @D_eleve#Acc_1@ \\\\
-Acc. pratique amateur coût: @D_eleve#Acc_2@ \\\\
-Nom professeur: @D_eleve#nomProf@ \\\\
-Commentaire sur vos disponibilités: @D_eleve#remarqueDispo@ \\\\
-Dispo. piano/guitare jours disponibles: @D_eleve#jourpossible@ \\\\
-Dispo. piano/guitare jours éventuels: @D_eleve#jourpeut_etre@ \\\\
-Dispo. piano/guitare jours non dispos: @D_eleve#jourimpossible@ \\\\
-Pratique orchestre: @D_eleve#orchestre_1@ \\\\
-Pratique orchestre coût: @D_eleve#orchestre_2@ \\\\
-Pratique groupe: @D_eleve#coursRock_1@ \\\\
-Pratique groupe coût: @D_eleve#coursRock_2@ \\\\
-Nom groupe: @D_eleve#nomGroupe@ \\\\
-Coût total des cours (hors location): @D_eleve#PrixTotal@ \\\\
-Instrument n°1: @D_eleve#instrument1@ \\\\
-Location instrument n°1 coût: @D_eleve#prixInstrument_1@ \\\\
-Instrument n°2: @D_eleve#instrument2@ \\\\
-Location instrument n°2 coût: @D_eleve#prixInstrument_2@ \\\\
+\\textbf{Nom}: @D_eleve#nom@ \\\\
+\\textbf{Age}: @D_eleve#age@ \\\\
+\\textbf{Date naissance}: @D_eleve#dateNaissance@ \\\\
+\\textbf{Taille}: @D_eleve#taille@ \\\\
+\\textbf{Niveau scolaire}: @D_eleve#NiveauScolaire@ \\\\
+\\textbf{Parcours collectif}: @D_eleve#ParcoursCol_1@ \\\\
+\\textbf{Parcours collectif coût}: @D_eleve#ParcoursCol_2@ \\\\
+\\textbf{Parcours complet}: @D_eleve#ParcoursComplet_1@ \\\\
+\\textbf{Parcours complet coût}: @D_eleve#ParcoursComplet_2@ \\\\
+\\textbf{Cours FMO}: @D_eleve#CoursFMO@ \\\\
+\\textbf{Suivi cours chant}: @D_eleve#CoursChant@ \\\\
+\\textbf{Acc. pratique amateur}: @D_eleve#Acc_1@ \\\\
+\\textbf{Acc. pratique amateur coût}: @D_eleve#Acc_2@ \\\\
+\\textbf{Nom professeur}: @D_eleve#nomProf@ \\\\
+\\textbf{Commentaire sur vos disponibilités}: @D_eleve#remarqueDispo@ \\\\
+\\textbf{Dispo. piano/guitare jours disponibles}: @D_eleve#jourpossible@ \\\\
+\\textbf{Dispo. piano/guitare jours éventuels}: @D_eleve#jourpeut_etre@ \\\\
+\\textbf{Dispo. piano/guitare jours non dispos}: @D_eleve#jourimpossible@ \\\\
+\\textbf{Pratique orchestre}: @D_eleve#orchestre_1@ \\\\
+\\textbf{Pratique orchestre coût}: @D_eleve#orchestre_2@ \\\\
+\\textbf{Pratique groupe}: @D_eleve#coursRock_1@ \\\\
+\\textbf{Pratique groupe coût}: @D_eleve#coursRock_2@ \\\\
+\\textbf{Nom groupe}: @D_eleve#nomGroupe@ \\\\
+\\textbf{Coût total des cours (hors location)}: @D_eleve#PrixTotal@ \\\\
+\\textbf{Instrument n°1}: @D_eleve#instrument1@ \\\\
+\\textbf{Location instrument n°1 coût}: @D_eleve#prixInstrument_1@ \\\\
+\\textbf{Instrument n°2}: @D_eleve#instrument2@ \\\\
+\\textbf{Location instrument n°2 coût}: @D_eleve#prixInstrument_2@ \\\\
 
 """
 
 TEMPLATE_COUTS = """
-\section{Montant inscription(s)}
+\section{Règlement}
+\subsection{Montant inscription}
 
-Ce tableau récapitule le montant total pour votre inscription. \\\\
+"""
+
+MODALITES = """
+\subsection{Modalités}
 \\textbf{Important:}
 \\begin{itemize}
-\item[\\textbullet] Si vous avez demandé la location d'instrument(s), seul le montant sans location est à régler pour l'inscription. 
 \item[\\textbullet] Vous disposez de 8 jours pour régler le montant de cette inscription.
 \item[\\textbullet] Si vous avez souscrit un cours collectif, il est nécessaire de passer au secrétariat pour la réservation du créneau. 
 \end{itemize}
@@ -100,16 +115,20 @@ Ce tableau récapitule le montant total pour votre inscription. \\\\
 
 TEMPLATE_FIN = """
 
+\subsection{Partie réservée à l'AMHV}
+
+\\includegraphics[width=\\textwidth]{cadre_administration.jpg}
+
 \section{Informations complémentaires}
 
-Demande de facture: @V_facture@ \\\\
-Bénéficiaire du dispositif 'Sortir': @V_dispositifSortir@ \\\\
-Bénévole pour aider: @V_volontaire@ \\\\
-Autorise la publication de photo(s): @V_autorisePhoto@ \\\\
-Autorisation enfant(s) à sortir seul des cours: @V_autoriseSortie@ \\\\
+\\textbf{Demande de facture}: @V_facture@ \\\\
+\\textbf{Bénéficiaire du dispositif 'Sortir'}: @V_dispositifSortir@ \\\\
+\\textbf{Bénévole pour aider}: @V_volontaire@ \\\\
+\\textbf{Autorise la publication de photo(s)}: @V_autorisePhoto@ \\\\
+\\textbf{Autorisation enfant(s) à sortir seul des cours}: @V_autoriseSortie@ \\\\
 
 \\noindent
-Vos commentaires lors de l'inscription: @V_commentaire@ \\\\
+\\textbf{Vos commentaires lors de l'inscription}: @V_commentaire@ \\\\
 
 \\noindent
 Pour rappel, \\textbf{vous avez accepté les conditions d'inscriptions} suivantes:
@@ -302,22 +321,11 @@ def generate_pdf(pdf_file: str, d_traitement, debug: bool = False):
     path_rep_stockage = mkdtemp()
     fd_fic_latex = open(os.path.join(path_rep_stockage, 'inscription.tex'), mode='w')
 
-    # a) En-tête et infos de contact
+    # a) En-tête et élèves inscrits
     tex_content = fill(TEMPLATE_ENTETE)
-    for i in range(2):
-        contact = all_contact[i]
-        if not contact['nom']:
-            break
-        d_vars['contact'] = contact
-        if i == 0:
-            ville_contat = get_champ_dict('contact', 'ville')
-        tex_content += fill(TEMPLATE_CONTACT)
-
-    # b) Liste des élèves
-    tex_content += fill(TEMPLATE_INSCRIPTIONS)
     l_champs_simples = ['nom', 'prenom', 'age', 'NiveauScolaire', 'CoursChant', 'PrixTotal', 'instrument1',
                         'location1', 'instrument2', 'location2', 'taille', 'remarqueDispo', 'nomProf', 'nomGroupe',
-                        'jourpossible', 'jourimpossible', 'jourpeut_etre']
+                        'jourpossible', 'jourimpossible', 'jourpeut_etre','CoursFMO','dateNaissance']
     l_champs_doubles = ['ParcoursCol', 'ParcoursComplet', 'Acc', 'orchestre', 'coursRock',
                         'prixInstrument']
     for i in range(NB_ELEVES_MAX):
@@ -329,19 +337,36 @@ def generate_pdf(pdf_file: str, d_traitement, debug: bool = False):
         if 'nom' not in eleve.keys():
             # On s'arrête au premier élève dont le nom est vide, en supposant qu'il n'y a pas d'autre élève défini après
             break
-        # TODO: utiliser variable debug
-        if True:
+        if DEBUG:
             print("\nEleve", eleve)
         d_vars['eleve'] = eleve
         # Pour les templates élève, on sait qu'il peut y avoir des variables manquantes
         tex_content += fill(TEMPLATE_ELEVE, raise_exception=False)
 
-    # c) Tableau des coûts
+    # b) Infos de contact
+    tex_content += fill(TEMPLATE_INFOS_CONTACT)
+    for i in range(2):
+        contact = all_contact[i]
+        if not contact['nom']:
+            break
+        d_vars['contact'] = contact
+        ville_contact = get_champ_dict('contact', 'ville')
+        adresse_contact = get_champ_dict('contact', 'adresse')
+        if len(adresse_contact):
+            adresse_full = adresse_contact + ', ' + ville_contact
+        else:
+            adresse_full = ville_contact
+        d_vars['contact']['adresse_full'] = adresse_full
+        if DEBUG:
+            print("\nContact", contact)
+        tex_content += fill(TEMPLATE_CONTACT)
+
+    # c) Section Règlement + sous_section coûts formation
     tex_content += fill(TEMPLATE_COUTS)
     l_prenoms = get_variable('prenom')
     l_prix_total_cours = get_variable('PrixTotal')
     l_prix_loc_instrus = get_variable('prixInstrument')
-    tex_content += "\\begin{tabular}{|l|c|c|c|}\n  \hline\n  \\textbf{Prénom} & \\textbf{Prix cours (€)} & \\textbf{Prix loc (€)} & \\textbf{Total (€)}\\\ \n"
+    tex_content += "\\begin{tabular}{|l|c|}\n  \hline\n  \\textbf{Prénom} & \\textbf{Prix cours (€)}\\\ \n"
     tex_content += "  \hline\n  \hline\n"
     total_cours = 0
     total_loc = 0
@@ -350,39 +375,53 @@ def generate_pdf(pdf_file: str, d_traitement, debug: bool = False):
             break
         prix_loc = l_prix_loc_instrus[0][i] + l_prix_loc_instrus[1][i]
         prix_total_cours = l_prix_total_cours[i]
-        tex_content += "  %s & %d & %d & %d\\\ \n" % (
-        l_prenoms[i], prix_total_cours, prix_loc, prix_total_cours + prix_loc)
+        tex_content += "  %s & %d\\\ \n" % (l_prenoms[i], prix_total_cours)
         total_cours += prix_total_cours
         total_loc += prix_loc
-    tex_content += "  \hline\n  \\textbf{Sous-total} & %d & %d & %d\\\ \n" % (
-    total_cours, total_loc, total_cours + total_loc)
+    tex_content += "  \hline\n  \\textbf{Sous-total} & %d\\\ \n" % (total_cours)
     tex_content += "  \hline\n"
-    tex_content += "  Cotisation AMHV & & & %d\\\ \n" % get_variable('cotisationFamille')
+    cotisation_famille = get_variable('cotisationFamille')
+    tex_content += "  Cotisation AMHV & %d\\\ \n" % cotisation_famille
     reduction = int(get_variable('reductionFamille'))
     if reduction:
-        tex_content += "  Réduction famille & & & -%d\\\ \n" % reduction
-    # !!! le get suivant ne marche pas car prixExterieur est toujours égal à 0 !!!
-    # prix_exterieur = int(get_variable('prixExterieur'))
-    # HACK très vilain ...
-    start = ville_contat.upper()[:2]
-    if start in ['AC', 'BR', 'NO', 'TH']:
-        prix_exterieur = 0
-    else:
-        prix_exterieur = int(input('Prix exterieur pour: %s (80) ? ' % ville_contat))
+        tex_content += "  Réduction famille & -%d\\\ \n" % reduction
+
+    prix_exterieur = int(get_variable('prixExterieur'))
+
     if prix_exterieur:
-        tex_content += "  Cotisation hors-commune & & & %d\\\ \n" % prix_exterieur
-    val = total_cours + total_loc + prix_exterieur + get_variable('cotisationFamille') - reduction
-    if total_loc:
-        tex_content += ("  \hline\n  \\textit{< Total avec location >} & & & \\textit{%d}\\\ \n" % val)
-    tex_content += ("  \hline\n  \\textbf{Total pour inscription} & & & %d\\\ \n" % (val - total_loc))
+        tex_content += "  Cotisation hors-commune & %d\\\ \n" % prix_exterieur
+    val = total_cours + prix_exterieur + cotisation_famille - reduction
+    tex_content += ("  \hline\n  \\textbf{Total pour inscription} & %d\\\ \n" % val)
     tex_content += "  \hline\n\end{tabular}\n"
 
-    # d) Type de règlement
+    # d) Tableau des coûts location
+    if total_loc:
+        tex_content += "\subsection{Montant location}"
+        l_prenoms = get_variable('prenom')
+        l_prix_loc_instrus = get_variable('prixInstrument')
+        tex_content += "\\begin{tabular}{|l|c|}\n  \hline\n  \\textbf{Prénom} & \\textbf{Prix Location (€)}\\\ \n"
+        tex_content += "  \hline\n  \hline\n"
+        total_loc = 0
+        for i in range(len(l_prenoms)):
+            if not l_prenoms[i]:
+                break
+            prix_loc = l_prix_loc_instrus[0][i] + l_prix_loc_instrus[1][i]
+            if prix_loc:
+                tex_content += "  %s & %d\\\ \n" % (l_prenoms[i], prix_loc)
+                total_loc += prix_loc
+        tex_content += "  \hline\n  \\textbf{Total location} & %d\\\ \n" % (total_loc)
+        tex_content += "  \hline\n"
+        tex_content += ("  \hline\n  \\textit{Total avec inscription} & \\textit{%d}\\\ \n" % (val + total_loc))
+        tex_content += "  \hline\n\end{tabular}\n"
+
+
+    # e) Type de règlement
+    tex_content += fill(MODALITES)
     l_reglement = get_variable('typeReglement').split('+')
     if len(l_reglement) == 1:
-        tex_content += "\\newline\\newline\\noindent\nType de règlement: %s\n" % l_reglement[0].rstrip().lstrip()
+        tex_content += "\\noindent\n\\textbf{Type de règlement:} %s\n" % l_reglement[0].rstrip().lstrip()
     else:
-        tex_content += "\\newline\\newline\\noindent\nType de règlement:\n\\begin{itemize}\n"
+        tex_content += "\\noindent\n\\textbf{Type de règlement:}\n\\begin{itemize}\n"
         for val in l_reglement:
             text = val.rstrip().lstrip()
             if not text.endswith('.'):
@@ -390,7 +429,7 @@ def generate_pdf(pdf_file: str, d_traitement, debug: bool = False):
             tex_content += "\item[\\textbullet] %s \n" % text
         tex_content += "\end{itemize}\n"
 
-    # e) Fin fichier
+    # f) Fin fichier
     tex_content += fill(TEMPLATE_FIN)
 
     # 2) Ecrit le fichier Latex
